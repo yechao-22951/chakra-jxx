@@ -1,0 +1,10 @@
+{
+    "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: LLVM, IndentWidth: 4}",
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.cStandard": "c11",
+    "files.associations": {
+        "functional": "cpp",
+        "system_error": "cpp",
+        "xtr1common": "cpp"
+    }
+}
