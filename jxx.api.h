@@ -10,6 +10,7 @@
 #define JXX_HIDDEN_ME enum { __VISIBILITY__ = false };
 
 using JXX_NAME = const wchar_t *;
+using JXX_STR = const wchar_t * ;
 using JXX_COUNT = size_t;
 using JXX_CALLEE = JsNativeFunction;
 using JXX_MIXIN = int (*)(void *);
@@ -80,35 +81,14 @@ class IJxxNativeObject {
     virtual long Release() = 0;
     virtual void *QueryService(JxxClassId clsid) = 0;
     virtual void Free() = 0;
-    virtual long Decorate(JsValueRef objex) = 0;
 };
 
-class IJxxNativeBuffer : public IJxxNativeObject {
-  public:
-    static JXX_EXPORTS __JS_METHODS__() { return {}; };
-    static JXX_EXPORTS __JS_FUNCTIONS__() { return {}; };
-    static JXX_PARENTS __JS_PARENTS__() { return {}; };
-
-  protected:
-    void *_query_service(JxxClassId clsid) {
-        if (clsid == jxx_clsid_of_(IJxxNativeBuffer))
-            return this;
-        if (clsid == jxx_clsid_of_(IJxxNativeObject))
-            return this;
-        return nullptr;
-    }
-
-  public:
-    virtual void *GetBuffer() = 0;
-    virtual uint32_t GetSize() = 0;
-};
-
-JXXAPI JsValueRef jxx_throw_error(JxxErrorCode err, const char *errmsg) {
+JXXAPI JsValueRef JxxException(JxxErrorCode err, const char *errmsg) {
     // throw std::exception(errmsg);
     return nullptr;
 }
 
-JXXAPI JXX_CLASS_DEFINION JxxQueryClassDefintion(JxxClassId clsid) {
+JXXAPI JXX_CLASS_DEFINION JxxQueryClass(JxxClassId clsid) {
     using func_t = JXX_CLASS_DEFINION (*)();
     return ((func_t)clsid)();
 }
@@ -123,6 +103,66 @@ JXXAPI void JxxNativeObjectReference(IJxxNativeObject *p) {
         return;
     p->AddRef();
 }
-
-JXXAPI JsValueRef JxxExceptionCreate() { return nullptr; };
-JXXAPI long JxxMixinObject(JsValueRef object, JXX_CLASS_ID clsid);
+//
+//JXXAPI JsValueRef JxxExceptionCreate(  ) { return nullptr; };
+//JXXAPI long JxxMixinObject(JsValueRef object, JXX_CLASS_ID clsid);
+//
+//
+//JXXAPI long JxxCreateRuntime(  );
+//JxxRegisterBuildin(LPCWSTR lpName, JsValueRef x);
+//
+//struct _JxxModule {
+//
+//};
+//
+//JxxApp.RegisterRuntimeBootstrap(  );
+//
+//main() {
+//	IJxxRuntime * rt = JxxCreateRuntime();
+//	JsValueRef console = JxxCreateNativeObject(jxx_clsid_of(JxxConsole));
+//	JsValueRef process = JxxCreateNativeObject(jxx_clsid_of(JxxProcess));
+//	JsValueRef process = JxxCreateNative(jxx_clsid_of(JxxProcess));
+//	////////////////////////////////////////////////////////////////////
+//	JxxRegisterModule(rt, L"console", console);		// 
+//	JxxRegisterModule(rt, L"console", console);		// 
+//	JxxRegisterModule(rt, L"console", console);		// 
+//	JxxRegisterModule(rt, L"console", console);		// 
+//	JxxRegisterModule(rt, L"fs", console);			// 
+//	JxxRegisterModule(rt, L"net", console);			// 
+//	JxxRegisterModule(rt, L"http", console);		// 
+//	JxxRegisterModule(rt, L"zlib", zlib);			// 
+//	JxxRegisterGlobalPrototype(rt globalTemplate);	// 设置全局对象原型
+//
+//
+//	JxxLoadModule();
+//	JxxLoadNativeModule();		// JxxModuleInit( JsContext * );
+//
+//	js::Object globalTemplate;
+//	globalTemplate[L"console"] = console.exports;	//
+//	globalTemplate[L"process"] = process.exports;
+//	globalTemplate[L"require"] = core.require;		// 
+//
+//	// 使用Jxx创建Context，Context将自动继承全局原型
+//	JxxCreateContext() {
+//		JsCreateContext();
+//		JsGetGlobalObject();
+//		JsSetPrototype(globalTemplate);
+//	}
+//
+//	// 将自动创建JsRuntime绑定的JxxRuntime环境
+//	JxxCreateRuntime() {
+//	
+//	}
+//
+//	JxxApp*;					// only one App instance to manager process-level data, like 
+//	JxxRuntime*;
+//	JxxContext*;				//
+//	JokaPostMessage;			// topic, message/
+//	Joka
+//	// JxxRuntime 具备：
+//	// 模块列表（内置、外部）		用来支持 require
+//	// Context全局对象的原型		
+//	// Promise队列				用来支持 async/await
+//	// ...
+//
+//}

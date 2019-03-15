@@ -2,7 +2,7 @@
 #include "jxx.var.object.h"
 #include <string>
 
-namespace jxx {
+namespace js {
 
 class buffer_accessor_ : public object_accessor_<_Buffer> {
   protected:
@@ -24,7 +24,7 @@ class buffer_accessor_ : public object_accessor_<_Buffer> {
     ChakraBytePtr Data() { return data_; }
     size_t Size() { return size_; }
     uint8_t &operator[](size_t index) { return data_[index]; }
-    static js_value_t FromInterface(IJxxNativeBuffer *buffer) {
+    static value_ref_t FromInterface(IJxxNativeBuffer *buffer) {
         if (!buffer)
             return nullptr;
         JsValueRef out = nullptr;
@@ -36,14 +36,14 @@ class buffer_accessor_ : public object_accessor_<_Buffer> {
         JxxNativeObjectReference(buffer);
         return out;
     }
-    js_value_t CreateView(uint32_t offset, uint32_t size) {
+    value_ref_t CreateView(uint32_t offset, uint32_t size) {
         JsValueRef view = nullptr;
         auto err = JsCreateDataView(get(), offset, size, &view);
         if (err)
             return nullptr;
         return view;
     }
-    js_value_t CreateTypedArray(uint32_t offset, uint32_t size) {
+    value_ref_t CreateTypedArray(uint32_t offset, uint32_t size) {
         JsValueRef view = nullptr;
         auto err = JsCreateTypedArray(get(), offset, size, &view);
         if (err)
@@ -51,7 +51,7 @@ class buffer_accessor_ : public object_accessor_<_Buffer> {
         return view;
     }
     template <typename Element_>
-    static js_value_t FromString(std::basic_string<Element_> str) {
+    static value_ref_t FromString(std::basic_string<Element_> str) {
         std::basic_string<Element_> *ptr =
             new std::basic_string<Element_>(std::move(str));
         if (!ptr)
@@ -68,7 +68,7 @@ class buffer_accessor_ : public object_accessor_<_Buffer> {
     }
 
     template <typename Element_>
-    static js_value_t FromView(const std::basic_string_view<Element_> &view) {
+    static value_ref_t FromView(const std::basic_string_view<Element_> &view) {
         JsValueRef out = nullptr;
         void *data = (void *)view->data();
         uint32_t size = (uint32_t)view->size() * sizeof(Element_);
@@ -79,7 +79,7 @@ class buffer_accessor_ : public object_accessor_<_Buffer> {
         return out;
     }
 
-    static js_value_t FromPlainBuffer(void *buffer, uint32_t len,
+    static value_ref_t FromPlainBuffer(void *buffer, uint32_t len,
                                       decltype(free) free_fn) {
         if (!buffer || !len)
             return nullptr;
@@ -92,7 +92,7 @@ class buffer_accessor_ : public object_accessor_<_Buffer> {
     }
 };
 
-using Buffer = value_as_<buffer_accessor_>;
+using Buffer = base_value_<buffer_accessor_>;
 
 template <JsTypedArrayType ElemType_> struct ArrayNativeType;
 
@@ -153,4 +153,4 @@ template <> struct ElementTypeOfNativeType<double> {
     enum { type_mask = 1 << JsArrayTypeFloat64 };
 };
 
-}; // namespace jxx
+}; // namespace js

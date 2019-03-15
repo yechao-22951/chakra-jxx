@@ -3,9 +3,9 @@
 #include "jxx.var.value.h"
 #include "jxx.var.primitive.h"
 
-namespace jxx {
+namespace js {
 
-	struct contents_t {
+	struct content_t {
 		ChakraBytePtr	data = 0;
 		uint32_t		size = 0;
 
@@ -17,28 +17,28 @@ namespace jxx {
 		}
 	};
 
-	using PropId = js_value_t;
-	using symbol_t = js_value_t;
+	using PropId = value_ref_t;
+	using symbol_t = value_ref_t;
 
 	PropId make_prop_id(const wchar_t* name) {
 		JsValueRef out;
 		auto err = JsGetPropertyIdFromName(name, &out);
-		if (err) jxx_throw_error(ERR_MSG(JxxOutOfMemory));
+		if (err) return JxxException(ERR_MSG(JxxOutOfMemory));
 		return out;
 	}
 	PropId make_prop_id(symbol_t sym) {
 		JsValueRef out;
 		auto err = JsGetPropertyIdFromSymbol(sym, &out);
-		if (err) jxx_throw_error(ERR_MSG(JxxOutOfMemory));
+		if (err) return JxxException(ERR_MSG(JxxOutOfMemory));
 		return out;
 	}
 
 	template <uint64_t AcceptableTypeMark_>
-	class object_accessor_ : public js_value_t {
+	class object_accessor_ : public value_ref_t {
 	public:
 		enum { __required_type_mask__ = AcceptableTypeMark_ };
 	public:
-		err_t set_property(const wchar_t* name, js_value_t value) {}
+		err_t set_property(const wchar_t* name, value_ref_t value) {}
 
 		IJxxNativeObject* GetExtenalData() {
 			void* data = nullptr;
@@ -59,7 +59,7 @@ namespace jxx {
 
 		JsContextRef GetContext() {
 			JsContextRef ctx = JS_INVALID_REFERENCE;
-			CXX_EXCEPTION_IF(JsGetContextOfObject(get(), &ctx));
+			JsGetContextOfObject(get(), &ctx);
 			return ctx;
 		}
 
@@ -70,26 +70,26 @@ namespace jxx {
 		class Property
 		{
 		protected:
-			js_value_t	this_;
+			value_ref_t	this_;
 			PropId	prop_id_;
 
 		public:
 			Property() {}
-			Property(js_value_t target, PropId prop) : this_(target), prop_id_(prop) {
+			Property(value_ref_t target, PropId prop) : this_(target), prop_id_(prop) {
 			}
-			void operator = (const js_value_t& val)
+			void operator = (const value_ref_t& val)
 			{
 				CXX_EXCEPTION_IF(JsSetProperty(this_, prop_id_, val, true));
 			}
-			operator js_value_t() const
+			operator value_ref_t() const
 			{
 				JsValueRef out;
 				CXX_EXCEPTION_IF(JsGetProperty(this_, prop_id_, out.address()));
-				return js_value_t(out);
+				return value_ref_t(out);
 			}
 		};
 
-		Property operator[](const __js_proto__& prop_id)
+		Property operator[](const __prototype__& prop_id)
 		{
 			Property X(*this, make_prop_id(L"__proto__"));
 			return X;
@@ -106,21 +106,21 @@ namespace jxx {
 			return Property(*this, make_prop_id(x));
 		}
 
-		bool SetProperty(PropId pid, const js_value_t& v) {
+		bool SetProperty(PropId pid, const value_ref_t& v) {
 			return JsSetProperty(*this, pid, v, false) == JsNoError;
 		}
-		js_value_t GetProperty(PropId pid) {
+		value_ref_t GetProperty(PropId pid) {
 			JsValueRef out;
 			CXX_EXCEPTION_IF(JsGetProperty(*this, pid, &out));
 			return out;
 		}
-		js_value_t GetPrototype() {
+		value_ref_t GetPrototype() {
 			JsValueRef out;
 			CXX_EXCEPTION_IF(JsGetPrototype(*this, out));
 			return out;
 		}
-		void SetPrototype(js_value_t proto) {
-			CXX_EXCEPTION_IF(JsSetPrototype(*this, proto));
+		JsErrorCode SetPrototype(value_ref_t proto) {
+			return (JsSetPrototype(*this, proto));
 		}
 	};
 
@@ -128,15 +128,15 @@ namespace jxx {
 
 	class array_accessor_ : public object_accessor_<_Array> {
 	public:
-		err_t set_item(const wchar_t* name, js_value_t value) {}
-		js_value_t get_item(const wchar_t* name) {}
-		err_t length(js_value_t value) {}
-		js_value_t operator[](int index) {}
+		err_t set_item(const wchar_t* name, value_ref_t value) {}
+		value_ref_t get_item(const wchar_t* name) {}
+		err_t length(value_ref_t value) {}
+		value_ref_t operator[](int index) {}
 	};
 
-	using Object = value_as_<object_accessor_<_Object>>;
-	using AnyObject = value_as_<object_accessor_<_AnyObject>>;
-	using Array = value_as_<array_accessor_>;
+	using Object = base_value_<object_accessor_<_Object>>;
+	using AnyObject = base_value_<object_accessor_<_AnyObject>>;
+	using Array = base_value_<array_accessor_>;
 
 	template <JsTypedArrayType ElemType_> struct ArrayNativeType;
 
@@ -196,7 +196,7 @@ namespace jxx {
 	};
 
 	// template < typename NativeElememtType_>
-	// class _typed_array : public js_value_t {
+	// class _typed_array : public value_ref_t {
 	// public:
 	//	enum { __required_type_mask__ =
 	//ElementTypeOfNativeType<NativeElememtType_>::type_mask }; 	using value_type =
@@ -205,9 +205,9 @@ namespace jxx {
 	//	}
 	//};
 
-	// using TypedArray = value_as_< _array >;
+	// using TypedArray = base_value_< _array >;
 
-}; // namespace jxx
+}; // namespace js
 
 
 JXXAPI JsValueRef JxxCreateObject(JsValueRef prototype) {

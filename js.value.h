@@ -3,8 +3,6 @@
 
 namespace js {
 
-	using err_t = JsErrorCode;
-
 	enum { JsOptional = 62, JsInvalidValue = 63 };
 
 	// JsValueType
@@ -29,10 +27,10 @@ namespace js {
 	const uint64_t _AnyOrNothing = ~JsInvalidValue;
 
 	struct __prototype__ {};
-	static const __prototype__ __prototype__;
+	static const __prototype__ __proto__;
 
 	class value_ref_t {
-	public:
+	protected:
 		JsValueRef nake_ = nullptr;
 	public:
 		value_ref_t() {};
@@ -71,62 +69,43 @@ namespace js {
 		bool is_one_of(uint64_t mask) { return (type_mask() & mask) != 0; }
 
 		operator JsValueRef() const { return nake_; }
+
 		operator bool() const { return nake_ != nullptr; }
+
+		JsValueRef* address() {
+			return &nake_;
+		}
+
+		JsValueRef* addr() {
+			return &nake_;
+		}
+
 	};
 
-	struct call_info_t {
-		JsValueRef callee;
-		bool is_new;
-		JsValueRef self;
-		JsValueRef* args;
-		size_t argc;
-		void* cookie;
-		JsValueRef returnValue;
-	};
-
-	class param_t {
-	protected:
-		JsValueRef* args = nullptr;
-		size_t argc = 0;
-	public:
-		param_t() = default;
-		param_t(const call_info_t& info, size_t i) {
-			args = i < info.argc ? info.args + i : nullptr;
-			argc = i < info.argc ? info.argc - i : 0;
-		}
-		size_t size() const {
-			return argc;
-		}
-		JsValueRef operator[](size_t index) const {
-			if (index >= argc) return nullptr;
-			return args[index];
-		}
-	};
 
 	template <uint64_t TypeMask_> class _as_the : public value_ref_t {
 	public:
 		_as_the(JsValueRef js_val) : value_ref_t(js_val) {
-			if (!is_one_of<TypeMask_>())
-				return JxxException(ERR_MSG(JxxErrorTypeMismatch));
+			throw_if_not(ErrorTypeMismatch, is_one_of<TypeMask_>());
 		}
 
 		_as_the(const value_ref_t& right) : value_ref_t(right) {
-			if (!is_one_of<TypeMask_>())
-				return JxxException(ERR_MSG(JxxErrorTypeMismatch));
+			throw_if_not(ErrorTypeMismatch, is_one_of<TypeMask_>());
 		}
 
-		_as_the(const _as_the& right) : value_ref_t(right) {}
+		_as_the(const _as_the& right) : value_ref_t(right) {
+		}
 
-		template <uint64_t TypeMask2_> _as_the(const _as_the& right) : _as_the(right.js_val_) {
-			if (!is_one_of<TypeMask_>())
-				return JxxException(ERR_MSG(JxxErrorTypeMismatch));
+		template <uint64_t TypeMask2_>
+		_as_the(const _as_the& right)
+			: _as_the(right.js_val_) {
+			throw_if_not(ErrorTypeMismatch, is_one_of<TypeMask_>());
 		}
 
 		_as_the(const param_t& param) {
 			JsValueRef right = param[0];
 			set(right);
-			if (!is_one_of<TypeMask_>())
-				return JxxException(ERR_MSG(JxxErrorTypeMismatch));
+			throw_if_not(ErrorTypeMismatch, is_one_of<TypeMask_>());
 		}
 
 		operator value_ref_t() const { return *(value_ref_t*)this; }
@@ -139,24 +118,19 @@ namespace js {
 	public:
 		base_value_() = default;
 		base_value_(JsValueRef value) {
-			if (!set(value))
-				return JxxException(ERR_MSG(JxxErrorTypeMismatch));
+			error_if<ErrorTypeMismatch>(!set(value));
 		}
 		base_value_(value_ref_t value) {
-			if (!set(value))
-				return JxxException(ERR_MSG(JxxErrorTypeMismatch));
+			error_if<ErrorTypeMismatch>(!set(value));
 		}
 		base_value_(const base_value_& value) {
-			if (!set(value))
-				return JxxException(ERR_MSG(JxxErrorTypeMismatch));
+			error_if<ErrorTypeMismatch>(!set(value));
 		}
 		template <class K, int O> base_value_(base_value_<K, O> value) {
-			if (!set(value))
-				return JxxException(ERR_MSG(JxxErrorTypeMismatch));
+			error_if<ErrorTypeMismatch>(!set(value));
 		}
 		template <uint64_t TypeMask_> base_value_(_as_the<TypeMask_> argv) {
-			if (!set(argv))
-				return JxxException(ERR_MSG(JxxErrorTypeMismatch));
+			error_if<ErrorTypeMismatch>(!set(argv));
 		}
 
 		bool set(value_ref_t value) {
@@ -167,14 +141,15 @@ namespace js {
 			return true;
 		}
 		bool set(base_value_ value) {
-			set(value.get());
-			return true;
+			return set(value.get());
 		}
-		template <typename K, int O> bool set(base_value_<K, O> value) {
+		template <typename K, int O>
+		bool set(base_value_<K, O> value) {
 			return set((value_ref_t)value);
 		}
 
-		template <uint64_t TypeMask_> bool set(_as_the<TypeMask_> argv) {
+		template <uint64_t TypeMask_>
+		bool set(_as_the<TypeMask_> argv) {
 			return set((value_ref_t)argv);
 		}
 		base_value_* operator -> () {

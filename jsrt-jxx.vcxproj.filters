@@ -18,6 +18,9 @@
     <ClCompile Include="jsrt-jxx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="jxx.api.cxx">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.api.h">
@@ -29,9 +32,6 @@
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.cxx.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.native.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.buffer.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -41,16 +41,43 @@
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.object.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.primitive.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.value.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\mode.0.win32.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jxx.runtime.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jxx.context.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="js.base.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.value.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.primitive.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.object.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="js.function.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="js.function - 副本.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="js.typedarray.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="js.array.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="js.arraybuffer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="js.context.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

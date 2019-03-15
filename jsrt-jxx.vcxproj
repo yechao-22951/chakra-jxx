@@ -156,19 +156,28 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="jsrt-jxx.cpp" />
+    <ClCompile Include="jxx.api.cxx" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.api.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.cxx.buffer.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.cxx.h" />
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.native.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.buffer.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.function.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.h" />
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.object.h" />
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.primitive.h" />
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.value.h" />
+    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.object.h" />
+    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.primitive.h" />
+    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.value.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\mode.0.win32.h" />
+    <ClInclude Include="js.array.h" />
+    <ClInclude Include="js.arraybuffer.h" />
+    <ClInclude Include="js.context.h" />
+    <ClInclude Include="js.typedarray.h" />
+    <ClInclude Include="js.base.h" />
+    <ClInclude Include="js.function - 副本.h" />
+    <ClInclude Include="js.function.h" />
+    <ClInclude Include="jxx.context.h" />
+    <ClInclude Include="jxx.runtime.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

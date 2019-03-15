@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-namespace jxx {
+namespace js {
 
 class Buffer : public JxxClassTemplate<Buffer> {
   public:
@@ -15,35 +15,35 @@ class Buffer : public JxxClassTemplate<Buffer> {
     cxx_impl_t data_;
 
   public:
-    Value Alloc(_the<_Number> size, _the<_Number | _Optional> fill,
-                _the<_String | _Optional> encoding) {
-        Int i_size = get_as<Int>(size);
+    Value Alloc(_as_the<_Number> size, _as_the<_Number | _Optional> fill,
+                _as_the<_String | _Optional> encoding) {
+        Int i_size = Get<Int>(size);
         if (!i_size)
             return Clear();
         if (i_size < 0)
-            jxx_throw_error(ERR_MSG(JxxBufferSizeInvalid));
+            return JxxException(ERR_MSG(JxxBufferSizeInvalid));
         data_.clear();
         data_ = std::move(cxx_impl_t(i_size, 0));
         return nullptr;
     }
-    Value From(_the<_Buffer | _Array | _String | _Object> source,
-               _the<_Number | _Optional> offset,
-               _the<_Number | _Optional> size) {
-        Int i_size = get_as<Int>(size);
+    Value From(_as_the<_Buffer | _Array | _String | _Object> source,
+               _as_the<_Number | _Optional> offset,
+               _as_the<_Number | _Optional> size) {
+        Int i_size = Get<Int>(size);
         if (!i_size)
             return Clear();
         if (i_size < 0)
-            jxx_throw_error(ERR_MSG(JxxBufferSizeInvalid));
+            return JxxException(ERR_MSG(JxxBufferSizeInvalid));
         data_.clear();
         data_ = std::move(cxx_impl_t(i_size, 0));
         return nullptr;
     }
-    Value Resize(_the<_Number> size) {
-        Int i_size = get_as<Int>(size);
+    Value Resize(_as_the<_Number> size) {
+        Int i_size = Get<Int>(size);
         if (!i_size)
             return Clear();
         if (i_size < 0)
-            jxx_throw_error(ERR_MSG(JxxBufferSizeInvalid));
+            return JxxException(ERR_MSG(JxxBufferSizeInvalid));
         data_.resize(i_size);
         return nullptr;
     }
@@ -58,4 +58,4 @@ class Buffer : public JxxClassTemplate<Buffer> {
     JXX_EXPORT_BY_NAME(Buffer, clear, Clear);
 };
 
-}; // namespace jxx
+}; // namespace js
