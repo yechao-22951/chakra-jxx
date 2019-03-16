@@ -2,9 +2,25 @@
 //
 
 #include <iostream>
-#include "jxx.cxx.h"
+#include "js.value.h"
+#include "js.arraybuffer.h"
+#include "js.context.h"
+#include "js.function.h"
+
+js::value_ref_t jello() {
+	return nullptr;
+}
 
 int main()
 {
+	js::Runtime runtime(JsRuntimeAttributeNone,nullptr);
+	js::Context context = js::Context::Create(runtime,0);
+	js::Context::Scope scope(context);
+	js::ArrayBuffer buffer = js::ArrayBuffer::Alloc(1000);
+	js::content_t content = buffer.GetContent();
+	content[0] = '2';
+	js::Durable<js::AnyObject> hold(buffer);
+	js::Function f = js::Function::FromMagic<jello>(nullptr,0);
+	f.Call(buffer);
     std::cout << "Hello World!\n"; 
 }

@@ -13,6 +13,8 @@ namespace js {
 
 	namespace xx {
 
+
+
 		template <typename Function_>
 		JsValueRef THROW_JS_EXCEPTION_(const Function_& func) {
 			try {
@@ -33,7 +35,7 @@ namespace js {
 
 			return THROW_JS_EXCEPTION_([&]() {
 				CXX_EXCEPTION_IF(argumentsCount == 0);
-				int mode = isNew ? DenyNormal : DenyNew;
+				int mode = isNew ? DenyNew : DenyNormal;
 				error_if<ErrorCallModeIsDenied>(mode & Deny_);
 				call_info_t info = { callee,
 									isNew,
@@ -61,7 +63,7 @@ namespace js {
 			return THROW_JS_EXCEPTION_([&]() {
 				static const std::size_t N = ARG_COUNT_OF_<decltype(Funtion_)>::value;
 				CXX_EXCEPTION_IF(argumentsCount == 0);
-				int mode = isNew ? DenyNormal : DenyNew;
+				int mode = isNew ? DenyNew : DenyNormal;
 				error_if<ErrorCallModeIsDenied>(mode & Deny_);
 				call_info_t info = { callee,
 									isNew,
@@ -72,21 +74,21 @@ namespace js {
 				auto I___ = std::make_index_sequence<N>{};
 				____call_magic_function(Funtion_, info, I___);
 				return info.returnValue;
-			});
+				});
 		}
 	};
 
 	class function_accessor_ : public object_accessor_<_Function> {
 	public:
 		template <typename... ARGS>
-		value_ref_t Call(_as_the<_Object | _Optional> this_, ARGS... args) {
+		value_ref_t Call(_as_the<_AnyObject | _Optional> this_, ARGS... args) {
 			JsValueRef argv[] = { this_, args... };
 			value_ref_t out;
 			auto err = JsCallFunction(get(), argv, sizeof...(args) + 1, out.addr());
 			return out;
 		}
 		template <typename... ARGS>
-		value_ref_t Construct(_as_the<_Object | _Optional> this_, ARGS... args) {
+		value_ref_t Construct(_as_the<_AnyObject | _Optional> this_, ARGS... args) {
 			JsValueRef argv[] = { this_, args... };
 			value_ref_t out;
 			auto err =
@@ -98,7 +100,7 @@ namespace js {
 		static value_ref_t FromNormal(JsValueRef name, void* data)
 		{
 			value_ref_t out;
-			JsCreateNamedFunction(name, _STUB_OF_NORMAL_FUNC_OF_<Function_>, data, out.addr());
+			JsCreateNamedFunction(name, xx::_STUB_OF_NORMAL_FUNC_OF_<Function_>, data, out.addr());
 			return out;
 		}
 
@@ -106,11 +108,16 @@ namespace js {
 		static value_ref_t FromMagic(JsValueRef name, void* data)
 		{
 			value_ref_t out;
-			JsCreateNamedFunction(name, _STUB_OF_MAGIC_FUNC_OF_<Function_>, data, out.addr());
+			JsCreateNamedFunction(name, xx::_STUB_OF_MAGIC_FUNC_OF_<Function_>, data, out.addr());
 			return out;
 		}
 	};
 
 	using Function = base_value_<function_accessor_>;
+
+	class Promise {
+	public:
+
+	};
 
 }; // namespace js

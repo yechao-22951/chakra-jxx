@@ -23,24 +23,19 @@ namespace js {
 			return &nake_;
 		}
 
-		struct Scope {
-			JsContextRef prev_ = JS_INVALID_REFERENCE;
-			bool enteted_ = false;
-			Scope(JsContextRef target) {
-				JsContextRef prev = JS_INVALID_REFERENCE;
-				auto err = JsGetCurrentContext(&prev_);
-				if (err) return;
-				err = JsSetCurrentContext(target);
-				if (err) return;
-				prev_ = prev;
-				enteted_ = true;
-			}
-			~Scope() {
-				if (enteted_) {
-					JsSetCurrentContext(prev_);
-				}
-			}
-		};
+		Context* operator -> () {
+			return this;
+		}
+		uint32_t AddRef() {
+			uint32_t rc = 0;
+			auto err = JsAddRef(nake_, &rc);
+			return rc;
+		}
+		uint32_t Release() {
+			uint32_t rc = 0;
+			JsRelease(nake_, &rc);
+			return rc;
+		}
 
 	public:
 
@@ -61,6 +56,53 @@ namespace js {
 			return out;
 		}
 
+	public:
+
+		struct Scope {
+			JsContextRef prev_ = JS_INVALID_REFERENCE;
+			bool enteted_ = false;
+			Scope(JsContextRef target) {
+				JsContextRef prev = JS_INVALID_REFERENCE;
+				auto err = JsGetCurrentContext(&prev_);
+				if (err) return;
+				err = JsSetCurrentContext(target);
+				if (err) return;
+				prev_ = prev;
+				enteted_ = true;
+			}
+			~Scope() {
+				if (enteted_) {
+					JsSetCurrentContext(prev_);
+				}
+			}
+		};
 	};
 
-}; // namespace js
+	class Runtime {
+	protected:
+		JsRuntimeHandle		runtime_= nullptr;
+	public:
+		Runtime(JsRuntimeAttributes attrs, JsThreadServiceCallback jtsc) {
+			JsRuntimeHandle handle_ = JS_INVALID_REFERENCE;
+			auto err = JsCreateRuntime(attrs, jtsc, &handle_);
+			if (err) return;
+			runtime_ = handle_;
+		}
+		~Runtime() {
+			if (runtime_)
+				JsDisposeRuntime(runtime_);
+		}
+		Runtime(const Runtime& r) = delete;
+		Runtime(Runtime&& r){
+			runtime_ = r.runtime_;
+			r.runtime_ = nullptr;
+		}
+		operator JsRuntimeHandle () const {
+			return runtime_;
+		}
+		Context CreateContext(void* data) {
+			return Context::Create(runtime_, data);
+		}
+	};
+
+};

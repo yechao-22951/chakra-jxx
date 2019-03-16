@@ -156,7 +156,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="jsrt-jxx.cpp" />
-    <ClCompile Include="jxx.api.cxx" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.api.h" />

@@ -24,8 +24,7 @@ namespace js {
 	public:
 		enum { __required_type_mask__ = AcceptableTypeMark_ };
 	public:
-		error_t set_property(const wchar_t* name, value_ref_t value) {}
-
+	
 		IExternalData* GetExtenalData() {
 			void* data = nullptr;
 			auto err = JsGetExternalData(get(), &data);

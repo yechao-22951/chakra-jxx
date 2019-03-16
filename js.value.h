@@ -80,6 +80,20 @@ namespace js {
 			return &nake_;
 		}
 
+		value_ref_t* operator -> () {
+			return this;
+		}
+		uint32_t AddRef() {
+			uint32_t rc = 0;
+			auto err = JsAddRef(nake_, &rc);
+			return rc;
+		}
+		uint32_t Release() {
+			uint32_t rc = 0;
+			JsRelease(nake_, &rc);
+			return rc;
+		}
+
 	};
 
 
@@ -117,22 +131,22 @@ namespace js {
 	class base_value_ : public Accessor_ {
 	public:
 		base_value_() = default;
-		base_value_(JsValueRef value) {
-			error_if<ErrorTypeMismatch>(!set(value));
-		}
 		base_value_(value_ref_t value) {
 			error_if<ErrorTypeMismatch>(!set(value));
 		}
-		base_value_(const base_value_& value) {
-			error_if<ErrorTypeMismatch>(!set(value));
-		}
+		//base_value_(const base_value_& value) {
+		//	error_if<ErrorTypeMismatch>(!set(value));
+		//}
+		//base_value_(base_value_&& value) {
+		//	error_if<ErrorTypeMismatch>(!set(value));
+		//	value.set(nullptr);
+		//}
 		template <class K, int O> base_value_(base_value_<K, O> value) {
 			error_if<ErrorTypeMismatch>(!set(value));
 		}
 		template <uint64_t TypeMask_> base_value_(_as_the<TypeMask_> argv) {
 			error_if<ErrorTypeMismatch>(!set(argv));
 		}
-
 		bool set(value_ref_t value) {
 			if (!value.is_one_of(Accessor_::__required_type_mask__ |
 				(Optional_ ? _Optional : 0)))
@@ -140,13 +154,13 @@ namespace js {
 			Accessor_::set(value.get());
 			return true;
 		}
-		bool set(base_value_ value) {
-			return set(value.get());
-		}
-		template <typename K, int O>
-		bool set(base_value_<K, O> value) {
-			return set((value_ref_t)value);
-		}
+		//bool set(base_value_ value) {
+		//	return set((value_ref_t)value.get());
+		//}
+		//template <typename K, int O>
+		//bool set(base_value_<K, O> value) {
+		//	return set((value_ref_t)value);
+		//}
 
 		template <uint64_t TypeMask_>
 		bool set(_as_the<TypeMask_> argv) {
@@ -156,15 +170,15 @@ namespace js {
 			return this;
 		}
 		uint32_t AddRef() {
-			if (!get()) return 0;
+			if (!Accessor_::get()) return 0;
 			uint32_t rc = 0;
-			JsAddRef(get(), &rc);
+			JsAddRef(Accessor_::get(), &rc);
 			return rc;
 		}
-		uint32_t Release(Context ctx) {
-			if (!get()) return 0;
+		uint32_t Release() {
+			if (!Accessor_::get()) return 0;
 			uint32_t rc = 0;
-			JsAddRef(get(), &rc);
+			JsAddRef(Accessor_::get(), &rc);
 			return rc;
 		}
 	};

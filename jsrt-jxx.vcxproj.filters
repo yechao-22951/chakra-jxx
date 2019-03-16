@@ -18,9 +18,6 @@
     <ClCompile Include="jsrt-jxx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="jxx.api.cxx">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.api.h">
