@@ -23,6 +23,12 @@ namespace js {
 			return &nake_;
 		}
 
+		void * GetData() {
+			void * data = nullptr;
+			JsGetContextData(get(), &data);
+			return data;
+		}
+
 		Context* operator -> () {
 			return this;
 		}
@@ -86,7 +92,7 @@ namespace js {
 
 	class Runtime {
 	protected:
-		JsRuntimeHandle		runtime_= nullptr;
+		JsRuntimeHandle	runtime_= JS_INVALID_REFERENCE;
 	public:
 		Runtime(JsRuntimeAttributes attrs, JsThreadServiceCallback jtsc) {
 			JsRuntimeHandle handle_ = JS_INVALID_REFERENCE;

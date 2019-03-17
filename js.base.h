@@ -1,21 +1,21 @@
 #pragma once
 #include <ChakraCore.h>
 #include <exception>
+#include <algorithm>
 #include <stdint.h>
 
 namespace js {
 
 	const int ErrorJsrtError = 0;
 	const int ErrorTypeMismatch = -1;
-	const int ErrorCallModeIsDenied = -2;
+	const int ErrorCallJxxIsDenied = -2;
 	const int ErrorInvalidArrayIndex = -3;
 	const int ErrorNotImplement = -4;
 
 	using Int = int;
 	using Real = double;
 	using Boolean = bool;
-	using WideCharPtr = const wchar_t*;
-	using OneByteCharPtr = const char*;
+	using CharPtr = const char*;
 	using error_t = int;
 	using length_t = unsigned int;
 	using refcnt_t = uint32_t;
@@ -53,9 +53,11 @@ namespace js {
     {                                                                          \
         do {                                                                   \
             if (cond)                                                          \
-                throw exception_t(code);                                       \
+                throw ::js::exception_t(code);                                 \
         } while (0);                                                           \
     }
+
+#define JSERR_TO_EXCEPTION(err)			do{ if(err) throw exception_t(err); } while(0);
 
 
 	struct call_info_t {
@@ -135,12 +137,28 @@ namespace js {
 				ref_->AddRef();
 		}
 		Durable(Durable&& r) {
-			ref_ = r.ref_;
-			r.ref_ = nullptr;
+			std::exchange(ref_, r.ref_);
 		}
 		~Durable() {
 			if (ref_)
 				ref_->Release();
+		}
+		Durable& operator = (const Durable& r) {
+			reset();
+			ref_ = r.ref_;
+			if (ref_)
+				ref_->AddRef();
+			return *this;
+		}
+		Durable& operator = (Durable&& r) {
+			reset();
+			std::exchange(ref_, r.ref_);
+			return *this;
+		}
+		void reset() {
+			if (!ref_) return;
+			ref_->Release();
+			ref_ = T();
 		}
 		operator T() { return ref_; }
 		operator const T() const { return ref_; }
@@ -149,36 +167,37 @@ namespace js {
 	};
 
 
-	template <typename FN> struct ARG_COUNT_OF_;
-	template <typename R, typename This_, typename... ARGS>
-	struct ARG_COUNT_OF_<R(This_::*)(ARGS...)> {
-		static const size_t value = sizeof...(ARGS);
-	};
-	template <typename R, typename... ARGS> struct ARG_COUNT_OF_<R(*)(ARGS...)> {
-		static const size_t value = sizeof...(ARGS);
-	};
-
 	//// 
 	// 
 	//	Dyamic Class
 	//
 
-	enum MixinOptions {
-		MixinMember,
-		MixinStatic,
-	};
+	//enum MixinOptions {
+	//	MixinMember,
+	//	MixinStatic,
+	//};
 
-	class INativeClass : public dos::IObject {
-	public:
-		static dos::IObject* __CLASS__() { return nullptr; };
-	public:
-		virtual WideCharPtr UncName() = 0;
-		// mixin member ( create a property)
-		// mixin static ( create a constructor)
-		virtual long Mixin(JsValueRef object, int mixin_options) = 0;
-		// new cxx instance
-		virtual long New(JsValueRef* args, size_t argc) = 0;
-	};
+	//class INativeClass : public dos::IObject {
+	//public:
+	//	static dos::IObject* __CLASS__() { return nullptr; };
+	//public:
+	//	virtual WideCharPtr UncName() = 0;
+	//	// mixin member ( create a property)
+	//	// mixin static ( create a constructor)
+	//	virtual long Mixin(JsValueRef object, int mixin_options) = 0;
+	//	// new cxx instance
+	//	virtual long New(JsValueRef* args, size_t argc) = 0;
+	//};
 
 
 }; // namespace js
+
+
+template <typename FN> struct ARG_COUNT_OF_;
+template <typename R, typename This_, typename... ARGS>
+struct ARG_COUNT_OF_<R(This_::*)(ARGS...)> {
+	static const size_t value = sizeof...(ARGS);
+};
+template <typename R, typename... ARGS> struct ARG_COUNT_OF_<R(*)(ARGS...)> {
+	static const size_t value = sizeof...(ARGS);
+};

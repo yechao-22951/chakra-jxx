@@ -29,9 +29,9 @@ namespace js {
 				unsigned short argumentsCount, void* externalData) {
 
 			return THROW_JS_EXCEPTION_([&]() {
-				CXX_EXCEPTION_IF(argumentsCount == 0);
+				CXX_EXCEPTION_IF(JsErrorInvalidArgument, argumentsCount == 0);
 				int mode = isNew ? DenyNew : DenyNormal;
-				EXCEPTION_IF<ErrorCallModeIsDenied>(mode & Deny_);
+				EXCEPTION_IF<ErrorCallJxxIsDenied>(mode & Deny_);
 				call_info_t info = { callee,
 									isNew,
 									arguments[0],
@@ -57,9 +57,9 @@ namespace js {
 
 			return THROW_JS_EXCEPTION_([&]() {
 				static const std::size_t N = ARG_COUNT_OF_<decltype(Funtion_)>::value;
-				CXX_EXCEPTION_IF(argumentsCount == 0);
+				CXX_EXCEPTION_IF(JsErrorInvalidArgument, argumentsCount == 0);
 				int mode = isNew ? DenyNew : DenyNormal;
-				EXCEPTION_IF<ErrorCallModeIsDenied>(mode & Deny_);
+				EXCEPTION_IF<ErrorCallJxxIsDenied>(mode & Deny_);
 				call_info_t info = { callee,
 									isNew,
 									arguments[0],
@@ -76,7 +76,7 @@ namespace js {
 	class function_accessor_ : public object_accessor_<_Function> {
 	public:
 		template <typename... ARGS>
-		value_ref_t Call(_as_the<_AnyObject | _Optional> this_, ARGS... args) {
+		value_ref_t Call(_as_the<_AnyObject | _Nothing> this_, ARGS... args) {
 			JsValueRef argv[] = { this_, args... };
 			value_ref_t out;
 			auto err = JsCallFunction(get(), argv, sizeof...(args) + 1, out.addr());

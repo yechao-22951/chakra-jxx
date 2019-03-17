@@ -24,7 +24,7 @@ namespace js {
 		_Object | _Function | _Array | _Buffer | _DataView | _TypedArray;
 	const uint64_t _Nothing = _Null | _Undefined | _Optional;
 	const uint64_t _Primitive = _Null | _Undefined | _String | _Number;
-	const uint64_t _AnyOrNothing = ~JsInvalidValue;
+	const uint64_t _AnyOrNothing = ~(__BIT <<JsInvalidValue);
 
 	struct __prototype__ {};
 	static const __prototype__ __proto__;
@@ -71,6 +71,14 @@ namespace js {
 		operator JsValueRef() const { return nake_; }
 
 		operator bool() const { return nake_ != nullptr; }
+
+		bool is_property_id(JsPropertyIdType* type) {
+			JsPropertyIdType type_;
+			auto err = JsGetPropertyIdType(nake_, &type_);
+			if (err) return false;
+			if (type)* type = type_;
+			return true;
+		}
 
 		JsValueRef* address() {
 			return &nake_;
@@ -132,20 +140,13 @@ namespace js {
 	public:
 		base_value_() = default;
 		base_value_(value_ref_t value) {
-			error_if<ErrorTypeMismatch>(!set(value));
+			CXX_EXCEPTION_IF(ErrorTypeMismatch, !set(value));
 		}
-		//base_value_(const base_value_& value) {
-		//	error_if<ErrorTypeMismatch>(!set(value));
-		//}
-		//base_value_(base_value_&& value) {
-		//	error_if<ErrorTypeMismatch>(!set(value));
-		//	value.set(nullptr);
-		//}
 		template <class K, int O> base_value_(base_value_<K, O> value) {
-			error_if<ErrorTypeMismatch>(!set(value));
+			CXX_EXCEPTION_IF(ErrorTypeMismatch, !set(value));
 		}
 		template <uint64_t TypeMask_> base_value_(_as_the<TypeMask_> argv) {
-			error_if<ErrorTypeMismatch>(!set(argv));
+			CXX_EXCEPTION_IF(ErrorTypeMismatch, !set(argv));
 		}
 		bool set(value_ref_t value) {
 			if (!value.is_one_of(Accessor_::__required_type_mask__ |
@@ -185,9 +186,15 @@ namespace js {
 
 	class value_accessor_ : public value_ref_t {
 	public:
-		enum { __required_type_mask__ = _AnyOrNothing };
+		static const auto __required_type_mask__ = _AnyOrNothing;
+	};
+
+	class symbol_accessor_ : public value_ref_t {
+	public:
+		static const auto __required_type_mask__ = _Symbol;
 	};
 
 	using Value = base_value_<value_accessor_>;
+	using Symbol = base_value_<symbol_accessor_>;
 
 }; // namespace js

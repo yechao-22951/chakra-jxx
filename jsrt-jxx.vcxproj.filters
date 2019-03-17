@@ -23,9 +23,6 @@
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\mode.0.win32.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="jxx.runtime.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="js.base.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -53,10 +50,22 @@
     <ClInclude Include="js.context.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.base.h">
+    <ClInclude Include="jxx.class.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="jxx.class.h">
+    <ClInclude Include="jxx.object.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="mode.runtime.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jxx.cc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jxx.runtime.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jxx.api.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

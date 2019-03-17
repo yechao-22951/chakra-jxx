@@ -6,10 +6,8 @@
 
 namespace js {
 
-	using WideStringView = std::wstring_view;
-	using WideString = std::wstring;
-	using OneByteString = std::string;
-	using OneByteStringView = std::string_view;
+	using String = std::string;
+	using StringView = std::string_view;
 
 	template <typename Ty_> Ty_ get_as_(value_ref_t ref);
 
@@ -26,25 +24,18 @@ namespace js {
 		return out;
 	}
 
-	template <> WideString get_as_<WideString>(value_ref_t ref) {
-		const wchar_t* str = nullptr;
+	template <> String get_as_<String>(value_ref_t ref) {
+		String out;
 		size_t len = 0;
-		auto err = JsStringToPointer(ref, &str, &len);
-		EXCEPTION_IF<ErrorTypeMismatch>(err);
-		return std::move(WideString(str, len));
-	}
-
-	template <> WideStringView get_as_<WideStringView>(value_ref_t ref) {
-		const wchar_t* str = nullptr;
-		size_t len = 0;
-		auto err = JsStringToPointer(ref, &str, &len);
-		EXCEPTION_IF<ErrorTypeMismatch>(err);
-		return std::move(WideStringView(str, len));
+		JSERR_TO_EXCEPTION(JsCopyString(ref, nullptr, 0, &len));
+		out.resize(len);
+		JSERR_TO_EXCEPTION(JsCopyString(ref, out.data(), len, &len));
+		return std::move(out);
 	}
 
 	template <> Boolean get_as_<Boolean>(value_ref_t ref) {
 		bool out = false;
-		auto err = JsBooleanToBool(ref, &out );
+		auto err = JsBooleanToBool(ref, &out);
 		EXCEPTION_IF<ErrorTypeMismatch>(err);
 		return out;
 	}
@@ -65,40 +56,27 @@ namespace js {
 		return out;
 	}
 
-	template <> value_ref_t just_is_<const WideString&>(const WideString& s) {
+	template <> value_ref_t just_is_<const String&>(const String& s) {
 		value_ref_t out;
-		auto err = JsPointerToString(s.c_str(), s.size(), out.addr());
-		EXCEPTION_IF<ErrorTypeMismatch>(err);
+		JSERR_TO_EXCEPTION(JsCreateString(s.c_str(), s.size(), out.addr()));
 		return out;
 	}
 
-	template <> value_ref_t just_is_<WideString>(WideString s) {
+	template <> value_ref_t just_is_<String>(String s) {
 		value_ref_t out;
-		auto err = JsPointerToString(s.c_str(), s.size(), out.addr());
-		EXCEPTION_IF<ErrorTypeMismatch>(err);
+		JSERR_TO_EXCEPTION(JsCreateString(s.c_str(), s.size(), out.addr()));
 		return out;
 	}
 
-	template <> value_ref_t just_is_<const WideStringView&>(const WideStringView& sv) {
+	template <> value_ref_t just_is_<CharPtr>(CharPtr ptr) {
 		value_ref_t out;
-		auto err = JsPointerToString(sv.data(), sv.size(), out.addr());
-		EXCEPTION_IF<ErrorTypeMismatch>(err);
+		JSERR_TO_EXCEPTION(JsCreateString(ptr, strlen(ptr), out.addr()));
 		return out;
 	}
 
-	template <> value_ref_t just_is_<const OneByteString&>(const OneByteString& s) {
-		WideString tmp(s.begin(), s.end());
-		return just_is_(tmp);
-	}
-
-	template <> value_ref_t just_is_<OneByteCharPtr>(OneByteCharPtr ptr) {
-		WideString tmp(ptr, ptr + strlen(ptr));
-		return just_is_(tmp);
-	}
-	template <> value_ref_t just_is_<WideCharPtr>(WideCharPtr ptr) {
+	template <> value_ref_t just_is_<const StringView&>(const StringView& view) {
 		value_ref_t out;
-		auto err = JsPointerToString(ptr, wcslen(ptr), out.addr());
-		EXCEPTION_IF<ErrorTypeMismatch>(err);
+		JSERR_TO_EXCEPTION(JsCreateString(view.data(), view.size(), out.addr()));
 		return out;
 	}
 

@@ -89,7 +89,7 @@ namespace js {
 		template < typename T >
 		T& operator [] (size_t index) {
 			size_t offset = index * el_size_;
-			error_if<ErrorInvalidArrayIndex>(offset + el_size_ > content_.size);
+			CXX_EXCEPTION_IF(ErrorInvalidArrayIndex, offset + el_size_ > content_.size);
 			return *(T*)(content_.data + offset);
 		}
 	};

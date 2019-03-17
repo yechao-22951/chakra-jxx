@@ -158,7 +158,6 @@
     <ClCompile Include="jsrt-jxx.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.base.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.object.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.primitive.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.value.h" />
@@ -169,8 +168,12 @@
     <ClInclude Include="js.typedarray.h" />
     <ClInclude Include="js.base.h" />
     <ClInclude Include="js.function.h" />
+    <ClInclude Include="jxx.api.h" />
     <ClInclude Include="jxx.class.h" />
+    <ClInclude Include="jxx.object.h" />
     <ClInclude Include="jxx.runtime.h" />
+    <ClInclude Include="jxx.cc.h" />
+    <ClInclude Include="mode.runtime.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

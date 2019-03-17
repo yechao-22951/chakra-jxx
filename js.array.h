@@ -13,7 +13,7 @@ class IndexedProperty {
     IndexedProperty(value_ref_t target, value_ref_t index)
         : this_(target), index_(index) {}
     void operator=(const value_ref_t &val) {
-        error_if<>(JsSetIndexedProperty(this_, index_, val));
+		JSERR_TO_EXCEPTION(JsSetIndexedProperty(this_, index_, val));
     }
     operator value_ref_t() const {
         value_ref_t out;
@@ -25,7 +25,7 @@ class IndexedProperty {
 class array_accessor_ : public object_accessor_<_Array> {
   public:
     uint32_t Length() {
-        propid_t id = make_prop_id(L"length");
+        propid_t id = PropertyId(L"length");
         if (!id)
             return 0;
         value_ref_t length = GetProperty(id);

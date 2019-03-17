@@ -8,12 +8,13 @@ namespace js {
 	using propid_t = value_ref_t;
 	using symbol_t = value_ref_t;
 
-	propid_t make_prop_id(const WideCharPtr name) {
+	propid_t PropertyId(const CharPtr name) {
 		JsValueRef out;
-		JsGetPropertyIdFromName(name, &out);
+		JsCreatePropertyId(name, strlen(name), &out);
 		return out;
 	}
-	propid_t make_prop_id(symbol_t sym) {
+
+	propid_t PropertyId(symbol_t sym) {
 		JsValueRef out;
 		JsGetPropertyIdFromSymbol(sym, &out);
 		return out;
@@ -22,25 +23,8 @@ namespace js {
 	template <uint64_t AcceptableTypeMark_>
 	class object_accessor_ : public value_ref_t {
 	public:
-		enum { __required_type_mask__ = AcceptableTypeMark_ };
+		static const auto __required_type_mask__ = AcceptableTypeMark_;
 	public:
-
-		IExternalData* GetExtenalData() {
-			void* data = nullptr;
-			auto err = JsGetExternalData(get(), &data);
-			if (err) return nullptr;
-			return (IExternalData*)data;
-		}
-
-		bool SetExtenalData(IExternalData* ptr) {
-			auto old = GetExtenalData();
-			if (old) old->Release();
-			if (!ptr) return true;
-			auto err = JsSetExternalData(get(), ptr);
-			if (err) return false;
-			ptr->AddRef();
-			return true;
-		}
 
 		JsContextRef GetContext() {
 			JsContextRef ctx = JS_INVALID_REFERENCE;
@@ -76,7 +60,7 @@ namespace js {
 
 		Property operator[](const __prototype__& prop_id)
 		{
-			Property X(*this, make_prop_id(L"__proto__"));
+			Property X(*this, PropertyId("__proto__"));
 			return X;
 		}
 
@@ -88,7 +72,7 @@ namespace js {
 		template< typename T>
 		Property operator[](const T& x)
 		{
-			return Property(*this, make_prop_id(x));
+			return Property(*this, PropertyId(x));
 		}
 
 		bool SetProperty(propid_t pid, const value_ref_t& v) {
