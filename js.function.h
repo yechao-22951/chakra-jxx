@@ -4,7 +4,7 @@
 
 namespace js {
 
-	using std_cxx_func_t = void (*)(call_info_t&);
+	using normal_func_t = void (*)(call_info_t&);
 
 	enum call_mode_t {
 		DenyNew = 1,
@@ -13,22 +13,17 @@ namespace js {
 
 	namespace xx {
 
-
-
 		template <typename Function_>
 		JsValueRef THROW_JS_EXCEPTION_(const Function_& func) {
 			try {
 				return func();
 			}
-			catch (const exception_t & e) {
-				// JsCreateError()
-			}
-			catch (const std::exception & e) {
+			catch (const exception_t&) {
 			}
 			return JS_INVALID_REFERENCE;
 		}
 
-		template <std_cxx_func_t Funtion_, int Deny_ = DenyNew>
+		template <normal_func_t Funtion_, int Deny_ = DenyNew>
 		static JsValueRef
 			_STUB_OF_NORMAL_FUNC_OF_(JsValueRef callee, bool isNew, JsValueRef * arguments,
 				unsigned short argumentsCount, void* externalData) {
@@ -36,7 +31,7 @@ namespace js {
 			return THROW_JS_EXCEPTION_([&]() {
 				CXX_EXCEPTION_IF(argumentsCount == 0);
 				int mode = isNew ? DenyNew : DenyNormal;
-				error_if<ErrorCallModeIsDenied>(mode & Deny_);
+				EXCEPTION_IF<ErrorCallModeIsDenied>(mode & Deny_);
 				call_info_t info = { callee,
 									isNew,
 									arguments[0],
@@ -64,7 +59,7 @@ namespace js {
 				static const std::size_t N = ARG_COUNT_OF_<decltype(Funtion_)>::value;
 				CXX_EXCEPTION_IF(argumentsCount == 0);
 				int mode = isNew ? DenyNew : DenyNormal;
-				error_if<ErrorCallModeIsDenied>(mode & Deny_);
+				EXCEPTION_IF<ErrorCallModeIsDenied>(mode & Deny_);
 				call_info_t info = { callee,
 									isNew,
 									arguments[0],
@@ -96,7 +91,14 @@ namespace js {
 			return out;
 		}
 	public:
-		template < std_cxx_func_t Function_ >
+		static value_ref_t FromNativeFunction(JsNativeFunction func, JsValueRef name, void* data)
+		{
+			value_ref_t out;
+			JsCreateNamedFunction(name, func, data, out.addr());
+			return out;
+		}
+
+		template < normal_func_t Function_ >
 		static value_ref_t FromNormal(JsValueRef name, void* data)
 		{
 			value_ref_t out;
@@ -115,9 +117,25 @@ namespace js {
 
 	using Function = base_value_<function_accessor_>;
 
-	class Promise {
-	public:
+	//class Promise {
+	//	Object		promise_;
+	//	Function	resolve_;
+	//	Function	reject_;
+	//public:
+	//	Promise() {
+	//		JsCreatePromise(promise_.addr(), resolve_.addr(), reject_.addr());
+	//	}
+	//	bool Resolve(Value value) {
+	//		value_ref_t global = Context::CurrentGlobal();
+	//		if( !global ) return false;
+	//		resolve_.Call(global, value);
+	//		return true;
+	//	}
+	//	Reject() {
 
-	};
+	//	}
+	//};
+
+
 
 }; // namespace js

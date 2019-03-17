@@ -41,6 +41,6 @@ namespace js {
 		}
 	};
 
-	using ArrayBuffer = base_value_<arraybuffer_accessor_>;
+	using DataView = base_value_<dataview_accessor_>;
 
 };

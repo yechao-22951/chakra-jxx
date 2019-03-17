@@ -24,7 +24,7 @@ namespace js {
 	public:
 		enum { __required_type_mask__ = AcceptableTypeMark_ };
 	public:
-	
+
 		IExternalData* GetExtenalData() {
 			void* data = nullptr;
 			auto err = JsGetExternalData(get(), &data);
@@ -64,7 +64,7 @@ namespace js {
 			}
 			void operator = (const value_ref_t& val)
 			{
-				error_if<>(JsSetProperty(this_, prop_id_, val, true));
+				EXCEPTION_IF<>(JsSetProperty(this_, prop_id_, val, true));
 			}
 			operator value_ref_t() const
 			{
@@ -112,8 +112,8 @@ namespace js {
 		}
 	};
 
-	using Object = base_value_<object_accessor_<_Object>>;
-	using AnyObject = base_value_<object_accessor_<_AnyObject>>;
+	using Object = base_value_<object_accessor_<_AnyObject>>;
+	using ObjectOnly = base_value_<object_accessor_<_Object>>;
 
 }; // namespace js
 

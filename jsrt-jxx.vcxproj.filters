@@ -20,31 +20,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.api.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.cxx.buffer.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.cxx.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.buffer.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.function.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\mode.0.win32.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="jxx.runtime.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="jxx.context.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="js.base.h">
@@ -62,9 +41,6 @@
     <ClInclude Include="js.function.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="js.function - 副本.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="js.typedarray.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -75,6 +51,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="js.context.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.base.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jxx.class.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

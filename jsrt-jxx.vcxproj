@@ -158,12 +158,7 @@
     <ClCompile Include="jsrt-jxx.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.api.h" />
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.cxx.buffer.h" />
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.cxx.h" />
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.buffer.h" />
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.function.h" />
-    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.var.h" />
+    <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\jxx.base.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.object.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.primitive.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.value.h" />
@@ -173,9 +168,8 @@
     <ClInclude Include="js.context.h" />
     <ClInclude Include="js.typedarray.h" />
     <ClInclude Include="js.base.h" />
-    <ClInclude Include="js.function - 副本.h" />
     <ClInclude Include="js.function.h" />
-    <ClInclude Include="jxx.context.h" />
+    <ClInclude Include="jxx.class.h" />
     <ClInclude Include="jxx.runtime.h" />
   </ItemGroup>
   <ItemGroup>

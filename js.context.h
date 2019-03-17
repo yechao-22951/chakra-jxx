@@ -56,6 +56,12 @@ namespace js {
 			return out;
 		}
 
+		static value_ref_t CurrentGlobal() {
+			value_ref_t global;
+			JsGetGlobalObject(global.addr());
+			return global;
+		}
+
 	public:
 
 		struct Scope {
