@@ -32,6 +32,7 @@ namespace js {
 			JsValueRef out = JS_INVALID_REFERENCE;
 			auto err = JsCreateExternalObjectWithPrototype(xobj, JxxRelease, proto, &out);
 			if (err) return value_ref_t(JS_INVALID_REFERENCE);
+			xobj->AddRef();
 			return value_ref_t(out);
 		}
 	};

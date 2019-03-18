@@ -21,7 +21,6 @@ protected:
 public:
 	JxxObject_* get() { return nake_; }
 	JxxObjectPtr() = default;
-	JxxObjectPtr(IJxxObject* p) { reset(p, true); }
 	JxxObjectPtr(JxxObject_* ptr) { reset(ptr, true); }
 	JxxObjectPtr(const JxxObjectPtr& r) { reset(r.get(), true); }
 	JxxObjectPtr(JxxObjectPtr&& r) { nake_ = r.detach(); }
@@ -77,7 +76,7 @@ public:
 		return { sizeof...(Implements_), __PARENTS__ };
 	};
 protected:
-	jxx_counter_t ref_count_;
+	jxx_counter_t ref_count_ = 0;
 public:
 	virtual JxxRefCount AddRef() { return ++ref_count_; }
 	virtual JxxRefCount Release() {
@@ -151,7 +150,7 @@ public:
 				CXX_EXCEPTION_IF(js::ErrorCallJxxIsDenied, mode & Deny_);
 				js::ExternalObject self(arguments[0]);
 				CXX_EXCEPTION_IF(JsErrorInvalidArgument, !self);
-				IJxxObject * JxxObject = self.GetJxxObject();
+				JxxObjectPtr<IJxxObject> JxxObject = self.GetJxxObject();
 				CXX_EXCEPTION_IF(JsErrorInvalidArgument, !JxxObject);
 				This_ * JxxThis = (This_*)JxxObject->QueryClass(jxxClassId);
 				CXX_EXCEPTION_IF(JsErrorInvalidArgument, !JxxThis);
@@ -215,25 +214,25 @@ template <typename T> void CHAKRA_CALLBACK CppDelete(void* ptr) {
     static inline const JXX_VIRTUAL_POINT __jxx__##CXX_NAME =                  \
         K::ADD_EXPORT_METHOD(                                                  \
             #CXX_NAME,           \
-            (JxxFunction)&_STUB_OF_MAGIC_METHOD_OF_<&K::CXX_NAME>);
+			&_STUB_OF_MAGIC_METHOD_OF_<&K::CXX_NAME,js::DenyNew>);
 
 #define JXX_EXPORT_METHOD_RENAME(K, CXX_NAME, JS_NAME)                         \
     static inline const JXX_VIRTUAL_POINT __jxx__##JS_NAME =                   \
         K::ADD_EXPORT_METHOD(                                                  \
             #JS_NAME,           \
-            (JxxFunction)&_STUB_OF_MAGIC_METHOD_OF_<&K::CXX_NAME>);
+           &_STUB_OF_MAGIC_METHOD_OF_<&K::CXX_NAME,js::DenyNew>);
 
 #define JXX_EXPORT_FUNCTION(K, CXX_NAME)                                       \
     static inline const JXX_VIRTUAL_POINT __jxx__##CXX_NAME =                  \
         K::ADD_EXPORT_FUNCTION(                                                \
             #CXX_NAME,           \
-            (JxxFunction)&_STUB_OF_MAGIC_FUNC_OF_<&K::CXX_NAME>);
+            &_STUB_OF_MAGIC_FUNC_OF_<&K::CXX_NAME,js::DenyNew>);
 
 #define JXX_EXPORT_FUNCTION_RENAME(K, CXX_NAME, JS_NAME)                       \
     static inline const JXX_VIRTUAL_POINT __jxx__##CXX_NAME =                  \
         K::ADD_EXPORT_FUNCTION(                                                \
             #JS_NAME,            \
-            (JxxFunction)&_STUB_OF_MAGIC_FUNC_OF_<&K::CXX_NAME>);
+			&_STUB_OF_MAGIC_FUNC_OF_<&K::CXX_NAME,js::DenyNew>);
 
 
 

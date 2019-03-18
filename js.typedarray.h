@@ -106,7 +106,14 @@ namespace js {
 			view.array_ = get();
 			return view;
 		}
+		content_t GetContent() {
+			auto mv = GetView();
+			return mv.content_;
+		}
 	};
 
 	using TypedArray = base_value_< typed_array_accessor_ >;
+
+
+
 };

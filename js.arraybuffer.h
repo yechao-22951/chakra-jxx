@@ -1,6 +1,7 @@
 #pragma once
 
 #include "js.object.h"
+#include "js.typedarray.h"
 
 namespace js {
 
@@ -42,5 +43,19 @@ namespace js {
 	};
 
 	using DataView = base_value_<dataview_accessor_>;
+
+	content_t GetContent(JsValueRef ref) {
+		value_ref_t x(ref);
+		if (x.is<_Buffer>()) {
+			return ArrayBuffer(x).GetContent();
+		}
+		if (x.is<_DataView>()) {
+			return DataView(x).GetContent();
+		}
+		if (x.is<_TypedArray>()) {
+			return TypedArray(x).GetContent();
+		}
+		return {};
+	}
 
 };

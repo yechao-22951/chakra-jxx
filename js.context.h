@@ -23,12 +23,11 @@ namespace js {
 			return &nake_;
 		}
 
-		void * GetData() {
-			void * data = nullptr;
+		void* GetData() {
+			void* data = nullptr;
 			JsGetContextData(get(), &data);
 			return data;
 		}
-
 		Context* operator -> () {
 			return this;
 		}
@@ -68,11 +67,20 @@ namespace js {
 			return global;
 		}
 
+		static Context From(JsValueRef object) {
+			JsContextRef out = JS_INVALID_REFERENCE;
+			auto err = JsGetContextOfObject(object, &out);
+			if (err) return JS_INVALID_REFERENCE;
+			return out;
+		}
+
 	public:
 
-		struct Scope {
+		class Scope {
+		protected:
 			JsContextRef prev_ = JS_INVALID_REFERENCE;
-			bool enteted_ = false;
+			bool entered_ = false;
+		public:
 			Scope(JsContextRef target) {
 				JsContextRef prev = JS_INVALID_REFERENCE;
 				auto err = JsGetCurrentContext(&prev_);
@@ -80,19 +88,22 @@ namespace js {
 				err = JsSetCurrentContext(target);
 				if (err) return;
 				prev_ = prev;
-				enteted_ = true;
+				entered_ = true;
 			}
 			~Scope() {
-				if (enteted_) {
+				if (entered_) {
 					JsSetCurrentContext(prev_);
 				}
+			}
+			bool HasEntered() {
+				return entered_;
 			}
 		};
 	};
 
 	class Runtime {
 	protected:
-		JsRuntimeHandle	runtime_= JS_INVALID_REFERENCE;
+		JsRuntimeHandle	runtime_ = JS_INVALID_REFERENCE;
 	public:
 		Runtime(JsRuntimeAttributes attrs, JsThreadServiceCallback jtsc) {
 			JsRuntimeHandle handle_ = JS_INVALID_REFERENCE;
@@ -105,7 +116,7 @@ namespace js {
 				JsDisposeRuntime(runtime_);
 		}
 		Runtime(const Runtime& r) = delete;
-		Runtime(Runtime&& r){
+		Runtime(Runtime&& r) {
 			runtime_ = r.runtime_;
 			r.runtime_ = nullptr;
 		}

@@ -68,8 +68,12 @@
     <ClInclude Include="jxx.api.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="jxx.asio.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="api.todo.md" />
   </ItemGroup>
 </Project>

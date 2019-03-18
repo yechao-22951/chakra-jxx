@@ -20,6 +20,10 @@ using JxxClassId = void*;
 
 class JxxRuntime;
 
+JXXAPI JxxRuntime* JxxCreateRuntime(JsRuntimeAttributes attr, JsThreadServiceCallback jts);
+
+JXXAPI JxxRuntime* JxxGetCurrentRuntime();
+
 JXXAPI JsContextRef JxxCreateContext(JxxRuntime* runtime);
 
 JXXAPI JsValueRef JxxGetString(JxxCharPtr ptr, size_t len = 0);
