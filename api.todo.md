@@ -15,7 +15,7 @@
 - close
 - set_option
 - shutdown
-- listen		//
+- listen        //
 
 ## Filesystem
 - open

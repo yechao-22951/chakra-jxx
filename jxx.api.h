@@ -34,64 +34,63 @@ JXXAPI JsValueRef JxxRegisterProto(JxxCharPtr ptr, JsValueRef proto);
 
 JXXAPI JsValueRef JxxGetSymbol(JxxCharPtr ptr);
 
-
 struct JxxParents {
-	size_t Count;
-	JxxClassId* ClassIDs;
+    size_t Count;
+    JxxClassId* ClassIDs;
 };
 
 struct JxxExport {
-	JxxNamePtr Name;
-	JxxFunction Callee;
+    JxxNamePtr Name;
+    JxxFunction Callee;
 };
 
 struct JxxExports {
-	JxxCount Count;
-	const JxxExport* Entries;
+    JxxCount Count;
+    const JxxExport* Entries;
 };
 
 struct JxxClassDefinition {
-	JxxClassId ClassId;
-	JxxNamePtr UncName;
-	JxxExports Methods;
-	JxxExports Functions;
-	JxxParents Parents;
+    JxxClassId ClassId;
+    JxxNamePtr UncName;
+    JxxExports Methods;
+    JxxExports Functions;
+    JxxParents Parents;
 };
 
 template <typename CXX> 
 JXXAPI JxxClassDefinition JXX_DEFINITION_OF_() {
-	static const JxxClassDefinition out = {
-		(JxxClassId)& JXX_DEFINITION_OF_<CXX>, CXX::__JS_UNCNAME__,
-		CXX::__JS_METHODS__(), CXX::__JS_FUNCTIONS__(), CXX::__JS_PARENTS__() };
-	return out;
+    static const JxxClassDefinition out = {
+        (JxxClassId)& JXX_DEFINITION_OF_<CXX>, CXX::__JS_UNCNAME__,
+        CXX::__JS_METHODS__(), CXX::__JS_FUNCTIONS__(), CXX::__JS_PARENTS__() };
+    return out;
 }
 
 #define jxx_clsid_of_(X) ((JXX_DEFINITION_OF_<X>))
 #define jxx_clsdef_of_(X) (jxx_clsid_of_(X)())
 
 enum JxxMixinOptions {
-	MIXIN_METHOD = 1,			// class method
-	MIXIN_FUNCTION = 2,			// class static function
+    MIXIN_METHOD = 1,            // class method
+    MIXIN_FUNCTION = 2,            // class static function
 };
 
-#define DEFINE_CLASS_NAME(name)			static inline JxxNamePtr __JS_UNCNAME__ = #name;
-#define NO_CLASS_NAME()					static inline JxxNamePtr __JS_UNCNAME__ = nullptr;
+#define DEFINE_CLASS_NAME(name)            static inline JxxNamePtr __JS_UNCNAME__ = #name;
+#define NO_CLASS_NAME()                    static inline JxxNamePtr __JS_UNCNAME__ = nullptr;
 
 class IJxxObject {
 public:
-	NO_CLASS_NAME();
-	static JxxExports __JS_METHODS__() { return {}; };
-	static JxxExports __JS_FUNCTIONS__() { return {}; };
-	static JxxParents __JS_PARENTS__() { return {}; };
+    NO_CLASS_NAME();
+    static JxxExports __JS_METHODS__() { return {}; };
+    static JxxExports __JS_FUNCTIONS__() { return {}; };
+    static JxxParents __JS_PARENTS__() { return {}; };
 public:
-	virtual ~IJxxObject() {};
-	virtual JxxRefCount AddRef() = 0;
-	virtual JxxRefCount Release() = 0;
-	virtual void* QueryClass(JxxClassId clsid) {
-		if (clsid == &JXX_DEFINITION_OF_<IJxxObject>)
-			return this;
-		return nullptr;
-	}
+    virtual ~IJxxObject() {};
+    virtual JxxRefCount AddRef() = 0;
+    virtual JxxRefCount Release() = 0;
+    virtual void* QueryClass(JxxClassId clsid) {
+        if (clsid == &JXX_DEFINITION_OF_<IJxxObject>)
+            return this;
+        return nullptr;
+    }
 };
 
 JXXAPI JxxClassDefinition JxxQueryClass(JxxClassId clsid);
