@@ -33,6 +33,7 @@ int main()
 	js::value_ref_t str1 = JxxGetString("hello");
 	js::value_ref_t str2 = JxxGetString("hello");
 	js::value_ref_t str3 = js::just_is_("hello");
+	js::value_ref_t sym1 = JxxGetSymbol("hello");
 	js::Function js_jello = js::Function::FromMagic<jello>(nullptr, 0);
 	JxxMixinObject(js_jello, jxx_clsid_of_(Console), MIXIN_METHOD);
 	js_jello.Call(js::Undefined());

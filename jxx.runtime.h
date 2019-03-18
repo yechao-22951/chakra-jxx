@@ -12,6 +12,7 @@ public:
 	JxxRuntime(JsRuntimeAttributes attr, JsThreadServiceCallback jts) : runtime_(attr, jts) {
 	}
 	~JxxRuntime() {
+		cache_.clear();
 	}
 public:
 	js::cache_t& cache() { return cache_; };

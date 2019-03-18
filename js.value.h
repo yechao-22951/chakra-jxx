@@ -179,7 +179,7 @@ namespace js {
 		uint32_t Release() {
 			if (!Accessor_::get()) return 0;
 			uint32_t rc = 0;
-			JsAddRef(Accessor_::get(), &rc);
+			JsRelease(Accessor_::get(), &rc);
 			return rc;
 		}
 	};
