@@ -1,154 +1,157 @@
 #pragma once
+#include <asio.hpp>
 #include "js.arraybuffer.h"
 #include "js.context.h"
 #include "js.function.h"
 #include "js.primitive.h"
 #include "jxx.class.h"
-#include <asio.hpp>
+#include "jxx.runtime.h"
+#include <functional>
 
 namespace js {
-using namespace asio::ip;
 
-class IAsioReadWrite : public JxxClassTemplateNE<IAsioReadWrite, IJxxObject> {
-  public:
-    virtual int async_read(_as_the<_Buffer> buffer,
-                           _as_the<_Function> callback);
-    virtual int async_write(_as_the<_Buffer> buffer,
-                            _as_the<_Function> callback);
-};
+    using namespace asio::ip;
 
-template <class AsioHandle_> class AsioReadWrite : public {
-  protected:
-    AsioHandle_ handle_;
+    asio::io_context& current_io_context() {
+        auto jsrt = JxxGetCurrentRuntime();
+        CXX_EXCEPTION_IF(JsErrorInvalidContext, !jsrt);
+        return jsrt->io_context();
+    }
 
-  public:
-    AsioReadWrite(asio::io_context &io) : handle_(io) {}
+    class _tcp_socket_t : public tcp::socket {
+    public:
+        _tcp_socket_t() : tcp::socket(current_io_context()) {}
+        _tcp_socket_t(tcp::socket&& r) : tcp::socket(std::move(r)) {};
+    };
+    using tcp_socket_t = JxxOf<_tcp_socket_t>;
 
-    virtual int async_read(_as_the<_Buffer | _DataView> buffer,
-                           _as_the<_Function> callback) {
-        content_t recv_buffer = js::GetContent(buffer);
-        js::Durable<value_ref_t> buffer_ = buffer;
-        js::Durable<js::Function> callback_ = callback;
-        asio::async_read(
-            handle_, asio::buffer(recv_buffer.data, recv_buffer.size),
-            [buffer_, callback_](asio::error_code ec) {
-                js::Context context = js::Context::From(callback_);
-                js::Context::Scope scope(context);
-                if (scope.HasEntered()) {
-                    callback_->Call(js::Context::CurrentGlobal(),
-                                    js::just_is_(ec.value()), buffer_);
-                }
+    class _tcp_acceptor_t : public tcp::acceptor {
+    public:
+        _tcp_acceptor_t() : tcp::acceptor(current_io_context()) {}
+    };
+    using tcp_acceptor_t = JxxOf<_tcp_acceptor_t>;
+
+    _as_the<_Object> CreateAcceptor(
+        _as_the<_String> addr,
+        _as_the<_String> port,
+        _as_the<_Object | _Optional> options)
+    {
+        JxxObjectPtr<tcp_acceptor_t> acceptor_ = new tcp_acceptor_t();
+        if (!acceptor_) return JS_INVALID_REFERENCE;
+        std::string remote_ = get_as_<std::string>(addr);
+        std::string port_ = get_as_<std::string>(port);
+        tcp::resolver resolver(current_io_context());
+        tcp::endpoint endpoint = *resolver.resolve(remote_, port_).begin();
+        acceptor_->open(endpoint.protocol());
+        acceptor_->set_option(tcp::acceptor::reuse_address(true));
+        acceptor_->bind(endpoint);
+        return ExtObject::Create(acceptor_, nullptr);
+    }
+
+    bool do_accept(ExtObject acceptor_) {
+        Durable<ExtObject> jsAcceptor(acceptor_);
+        JxxObjectPtr<tcp_acceptor_t> cxxAcceptor = jsAcceptor->TryGetAs<tcp_acceptor_t>();
+        if (!cxxAcceptor) return false;
+        cxxAcceptor->async_accept(
+            [cxxAcceptor, jsAcceptor](std::error_code ec, tcp::socket socket) mutable
+            {
+                if (!cxxAcceptor->is_open())
+                    return;
+                if (ec) return;
+                Function onConnection = jsAcceptor->GetProperty(JxxGetPropertyId("onConnection"));
+                if (!onConnection)
+                    return;
+                auto client = ExtObject::As<tcp_socket_t>::New(nullptr, std::move(socket));
+                if (!client)
+                    return;
+                onConnection.Call(jsAcceptor.get(), client.get());
+                do_accept(jsAcceptor);
             });
+        return true;
+    };
+
+    _as_the<_Boolean> Listen(_as_the<_Object> acceptor) {
+        ExtObject jsAcceptor(acceptor);
+        Function onConnection = jsAcceptor["onConnection"];
+        if (!onConnection) return just_is_(false);
+        auto cxxAcceptor = jsAcceptor.TryGetAs<tcp_acceptor_t>();
+        if (!cxxAcceptor) return just_is_(false);
+        cxxAcceptor->listen();
+        if (!do_accept(jsAcceptor)) return just_is_(false);
+        return just_is_(true);
     }
 
-    virtual int async_write(_as_the<_Buffer | _DataView> buffer,
-                            _as_the<_Function> callback) {
-        content_t recv_buffer;
-        std::string data;
-        if (buffer.is<_String>()) {
-            data = js::get_as_<js::String>(buffer);
-            recv_buffer.data = data.data();
-            recv_buffer.size = data.size();
-        } else {
-            recv_buffer = js::GetContent(buffer);
-        }
-        js::Durable<value_ref_t> buffer_ = buffer;
-        js::Durable<js::Function> callback_ = callback;
-        asio::async_write(
-            handle_, asio::const_buffer(recv_buffer.data, recv_buffer.size),
-            [buffer_, callback_](asio::error_code ec) {
-                js::Context context = js::Context::From(callback_);
-                js::Context::Scope scope(context);
-                if (scope.HasEntered()) {
-                    callback_->Call(js::Context::CurrentGlobal(),
-                                    js::just_is_(ec.value()), buffer_);
-                }
+    _as_the<_Boolean> AsyncRead(_as_the<_Object> socket, _as_the<_BufferLike> buffer)
+    {
+        Durable<ExtObject> jsSocket(socket);
+        if (!jsSocket) return just_is_(false);
+        JxxObjectPtr<tcp_socket_t> cxxSocket = jsSocket->TryGetAs<tcp_socket_t>();
+        if (!cxxSocket) return just_is_(false);
+        Durable<value_ref_t> jsBuffer = buffer;
+        content_t cxxBuffer = GetContent(jsBuffer.get());
+        cxxSocket->async_read_some(asio::buffer(cxxBuffer.data, cxxBuffer.size),
+            [jsSocket, jsBuffer](std::error_code ec, size_t read)
+            {
+                Function callback = (value_ref_t)jsSocket->GetProperty("onData");
+                if (!callback) return;
+                callback.Call(
+                    jsSocket.get(),
+                    just_is_(ec.value()),
+                    just_is_(read),
+                    jsBuffer.get()
+                );
             });
-    }
+        return just_is_(true);
+    };
 
-    virtual int async_write_str(_as_the<_String> buffer,
-                                _as_the<_Function> callback,
-                                _as_the<_String | _Optional> encoding) {}
-};
+    _as_the<_Boolean> AsyncReadEx(_as_the<_Object> socket, _as_the<_Number> bufferSize)
+    {
+        Durable<ExtObject> jsSocket(socket);
+        if (!jsSocket) return just_is_(false);
+        JxxObjectPtr<tcp_socket_t> cxxSocket = jsSocket->TryGetAs<tcp_socket_t>();
+        if (!cxxSocket) return just_is_(false);
+        Durable<ArrayBuffer> jsBuffer = ArrayBuffer::Alloc(get_as_<int>(bufferSize));
+        if (!jsBuffer) return just_is_(false);
+        content_t cxxBuffer = GetContent(jsBuffer.get());
+        cxxSocket->async_read_some(
+            asio::buffer(cxxBuffer.data, cxxBuffer.size),
+            [jsSocket, jsBuffer, bufferSize](std::error_code ec, size_t read)
+            {
+                Function callback = jsSocket->GetProperty("onData");
+                if (!callback) return;
+                callback.Call(
+                    jsSocket.get(),
+                    just_is_(ec.value()),
+                    just_is_(read),
+                    jsBuffer.get()
+                );
+                if (!ec)
+                    AsyncReadEx(jsSocket.get(), bufferSize);
+            });
 
-class TcpSocket : public JxxClassTemplateNE<TcpSocket, IAsioReadWrite> {
-  public:
-    TcpSocket(asio::io_context &io) {}
-};
+        return just_is_(true);
+    };
 
-class UdpSocket : public JxxClassTemplateNE<UdpSocket, IJxxObject> {
-  public:
-    udp::socket socket_;
-
-  public:
-    UdpSocket(asio::io_context &io) : socket_(io) {}
-};
-
-value_ref_t bind(_as_the<_Object> sock,
-                 _as_the<_String | _Null | _Undefined> addr,
-                 _as_the<_Number> port) {
-    std::string addr_s = addr ? js::get_as_<js::String>(addr) : host_name();
-    address as_addr = make_address(addr_s);
-    int port_i = get_as_<int>(port);
-    ExternalObject extobj(sock);
-    if (!extobj)
-        return JS_INVALID_REFERENCE;
-    JxxObjectPtr<IJxxObject> socket = extobj.GetJxxObject();
-    if (!socket)
-        return JS_INVALID_REFERENCE;
-    JxxObjectPtr<TcpSocket> tcp_socket(socket);
-    if (tcp_socket) {
-        tcp::endpoint target(as_addr, port_i);
-        tcp_socket->socket_.bind(target);
-        return JS_INVALID_REFERENCE;
+    _as_the<_Boolean> AsyncWrite(_as_the<_Object> socket, _as_the<_BufferLike> buffer)
+    {
+        Durable<ExtObject> jsSocket(socket);
+        if (!jsSocket) return just_is_(false);
+        JxxObjectPtr<tcp_socket_t> cxxSocket = jsSocket->TryGetAs<tcp_socket_t>();
+        content_t cxxBuffer = GetContent(buffer);
+        Durable<value_ref_t> jsBuffer(buffer);
+        cxxSocket->async_send(
+            asio::buffer(cxxBuffer.data, cxxBuffer.size),
+            [jsSocket, jsBuffer](std::error_code ec, size_t written) mutable {
+                Function onWritten = jsSocket->GetProperty("onWritten");
+                if (!onWritten) return;
+                onWritten.Call(
+                    jsSocket.get(),
+                    just_is_(ec.value()),
+                    just_is_(written),
+                    jsBuffer.get()
+                );
+            });
+        return just_is_(true);
     }
-    JxxObjectPtr<UdpSocket> udp_socket(socket);
-    if (udp_socket) {
-        udp::endpoint target(as_addr, port_i);
-        udp_socket->socket_.bind(target);
-        return JS_INVALID_REFERENCE;
-    }
-    return JS_INVALID_REFERENCE;
-}
-
-value_ref_t async_read(_as_the<_Object> sock,
-                       _as_the<_Buffer | _DataView | _TypedArray> data,
-                       _as_the<_Function> callback) {
-    ExternalObject extobj(sock);
-    if (!extobj)
-        return JS_INVALID_REFERENCE;
-    JxxObjectPtr<IJxxObject> socket = extobj.GetJxxObject();
-    if (!socket)
-        return JS_INVALID_REFERENCE;
-    JxxObjectPtr<TcpSocket> tcp_socket(socket);
-    if (tcp_socket) {
-        tcp_socket->
-    }
-    JxxObjectPtr<UdpSocket> udp_socket(socket);
-    if (udp_socket) {
-    }
-    return JS_INVALID_REFERENCE;
-}
-
-value_ref_t async_read(_as_the<_Object> sock,
-                       _as_the<_Buffer | _DataView | _TypedArray> data) {
-    JxxObjectPtr<JxxRuntime> rt = JxxGetCurrentRuntime();
-    if (!rt)
-        return JS_INVALID_REFERENCE;
-    ExternalObject extobj(sock);
-    if (!extobj)
-        return JS_INVALID_REFERENCE;
-    JxxObjectPtr<IJxxObject> socket = extobj.GetJxxObject();
-    if (!socket)
-        return JS_INVALID_REFERENCE;
-    JxxObjectPtr<TcpSocket> tcp_socket(socket);
-    if (tcp_socket) {
-        tcp_socket->
-    }
-    JxxObjectPtr<UdpSocket> udp_socket(socket);
-    if (udp_socket) {
-    }
-    return JS_INVALID_REFERENCE;
-}
 
 }; // namespace js

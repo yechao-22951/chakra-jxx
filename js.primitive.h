@@ -14,13 +14,13 @@ template <typename Ty_> Ty_ get_as_(value_ref_t ref);
 template <> Int get_as_<Int>(value_ref_t ref) {
     int out = 0;
     auto err = JsNumberToInt(ref, &out);
-    EXCEPTION_IF<ErrorTypeMismatch>(err);
+    CXX_EXCEPTION_IF(ErrorTypeMismatch, err);
     return out;
 }
 template <> Real get_as_<Real>(value_ref_t ref) {
     double out = 0;
     auto err = JsNumberToDouble(ref, &out);
-    EXCEPTION_IF<ErrorTypeMismatch>(err);
+    CXX_EXCEPTION_IF(ErrorTypeMismatch, err);
     return out;
 }
 
@@ -36,7 +36,7 @@ template <> String get_as_<String>(value_ref_t ref) {
 template <> Boolean get_as_<Boolean>(value_ref_t ref) {
     bool out = false;
     auto err = JsBooleanToBool(ref, &out);
-    EXCEPTION_IF<ErrorTypeMismatch>(err);
+    CXX_EXCEPTION_IF(ErrorTypeMismatch, err);
     return out;
 }
 
@@ -45,14 +45,21 @@ template <typename Ty_> value_ref_t just_is_(Ty_ i);
 template <> value_ref_t just_is_<Int>(Int i) {
     value_ref_t out;
     auto err = JsIntToNumber(i, out.addr());
-    EXCEPTION_IF<ErrorTypeMismatch>(err);
+    CXX_EXCEPTION_IF(ErrorTypeMismatch, err);
+    return out;
+}
+
+template <> value_ref_t just_is_<size_t>(size_t i) {
+    value_ref_t out;
+    auto err = JsIntToNumber((int)i, out.addr());
+    CXX_EXCEPTION_IF(ErrorTypeMismatch, err);
     return out;
 }
 
 template <> value_ref_t just_is_<Real>(Real i) {
     value_ref_t out;
     auto err = JsDoubleToNumber(i, out.addr());
-    EXCEPTION_IF<ErrorTypeMismatch>(err);
+    CXX_EXCEPTION_IF(ErrorTypeMismatch, err);
     return out;
 }
 
@@ -83,27 +90,27 @@ template <> value_ref_t just_is_<const StringView &>(const StringView &view) {
 template <> value_ref_t just_is_(Boolean bv) {
     value_ref_t out;
     auto err = JsBoolToBoolean(bv, out.addr());
-    EXCEPTION_IF<ErrorTypeMismatch>(err);
+    CXX_EXCEPTION_IF(ErrorTypeMismatch, err);
     return out;
 }
 
 template <Boolean Val_> value_ref_t just_is_() {
     value_ref_t out;
     auto err = JsBoolToBoolean(Val_, out.addr());
-    EXCEPTION_IF<ErrorTypeMismatch>(err);
+    CXX_EXCEPTION_IF(ErrorTypeMismatch, err);
     return out;
 }
 
 value_ref_t Null() {
     value_ref_t out;
     auto err = JsGetNullValue(out.addr());
-    EXCEPTION_IF<ErrorTypeMismatch>(err);
+    CXX_EXCEPTION_IF(ErrorTypeMismatch, err);
     return out;
 }
 value_ref_t Undefined() {
     value_ref_t out;
     auto err = JsGetUndefinedValue(out.addr());
-    EXCEPTION_IF<>(err);
+    CXX_EXCEPTION_IF(ErrorTypeMismatch, err);
     return out;
 }
 

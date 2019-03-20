@@ -61,7 +61,7 @@ class Context {
         return out;
     }
 
-    static value_ref_t CurrentGlobal() {
+    static value_ref_t Global() {
         value_ref_t global;
         JsGetGlobalObject(global.addr());
         return global;
@@ -84,7 +84,7 @@ class Context {
       public:
         Scope(JsContextRef target) {
             JsContextRef prev = JS_INVALID_REFERENCE;
-            auto err = JsGetCurrentContext(&prev_);
+            auto err = JsGetCurrentContext(&prev);
             if (err)
                 return;
             err = JsSetCurrentContext(target);

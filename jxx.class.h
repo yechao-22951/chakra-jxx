@@ -10,89 +10,43 @@
 
 using jxx_counter_t = std::atomic<uint32_t>;
 
-template <typename From_, typename To_> To_ *query_cast(From_ *from) {
-    return from->QueryClass(jxx_clsid_of(To_));
-}
+//template <typename From_, typename To_> To_ *query_cast(From_ *from) {
+//    return from->QueryClass(jxx_clsid_of(To_));
+//}
 
-template <typename JxxObject_> class JxxObjectPtr {
-  protected:
-    JxxObject_ *nake_ = nullptr;
-
-  public:
-    JxxObject_ *get() { return nake_; }
-    JxxObjectPtr() = default;
-    JxxObjectPtr(JxxObject_ *ptr) { reset(ptr, true); }
-    JxxObjectPtr(const JxxObjectPtr &r) { reset(r.get(), true); }
-    JxxObjectPtr(JxxObjectPtr &&r) { nake_ = r.detach(); }
-    template <typename K> JxxObjectPtr(const JxxObjectPtr<K> &r) { reset(r); }
-    template <typename K> JxxObjectPtr(JxxObjectPtr<K> &&r) { reset(r); }
-    //////////////////////////////////////////////////
-    JxxObjectPtr &attach(JxxObject_ *ptr) { return reset(ptr, false); }
-    JxxObject_ *detach() { return std::exchange(nake_, nullptr); }
-    JxxObjectPtr &reset() {
-        auto old = std::exchange(nake_, nullptr);
-        if (old)
-            old->Release();
-        return *this;
-    }
-    JxxObjectPtr &reset(JxxObject_ *ptr, bool ref) {
-        auto old = std::exchange(nake_, ptr);
-        if (ptr && ref)
-            ptr->AddRef();
-        if (old)
-            old->Release();
-        return *this;
-    }
-    template <typename K> JxxObjectPtr &reset(K *ptr, bool ref) {
-        JxxObject_ *np = query_cast(ptr);
-        return reset(np, ref);
-    }
-    template <typename K> JxxObjectPtr &reset(const JxxObjectPtr<K> &ptr) {
-        JxxObject_ *np = query_cast(ptr.get());
-        return reset(np, true);
-    }
-    template <typename K> JxxObjectPtr &reset(JxxObjectPtr<K> &&ptr) {
-        JxxObject_ *np = query_cast(ptr.get());
-        if (np)
-            ptr.detach();
-        return reset(np, false);
-    }
-    //////////////////////////////////////////////////
-    JxxObject_ *operator->() { return nake_; }
-    const JxxObject_ *operator->() const { return nake_; }
-    //////////////////////////////////////////////////
-    operator bool() const { return nake_ != nullptr; }
-};
 
 struct JXX_VIRTUAL_POINT {};
 
 template <typename This_, typename... Implements_>
 class JxxClassTemplateNE : public Implements_... {
-  public:
+public:
     static inline JxxClassId __PARENTS__[] = {
-        ((JxxClassId)JXX_DEFINITION_OF_<Implements_>)..., nullptr};
+        ((JxxClassId)JXX_DEFINITION_OF_<Implements_>)..., nullptr };
     static JxxExports __JS_METHODS__() { return {}; }
     static JxxExports __JS_FUNCTIONS__() { return {}; }
     static JxxParents __JS_PARENTS__() {
-        return {sizeof...(Implements_), __PARENTS__};
+        return { sizeof...(Implements_), __PARENTS__ };
     };
 
-  protected:
+protected:
     jxx_counter_t ref_count_ = 0;
 
-  public:
-    virtual JxxRefCount AddRef() { return ++ref_count_; }
-    virtual JxxRefCount Release() {
-        auto c = --ref_count_;
-        if (!c) {
-            delete this;
-        };
-        return c;
+public:
+    virtual JxxRefCount AddRef() {
+        auto rc = ++ref_count_;
+        //printf("%p : %d\n", this, rc);
+        return rc;
     }
-    virtual void *QueryClass(JxxClassId clsid) {
+    virtual JxxRefCount Release() {
+        auto rc = --ref_count_;
+        if (!rc)
+            delete this;
+        return rc;
+    }
+    virtual void* QueryClass(JxxClassId clsid) {
         if (clsid == jxx_clsid_of_(This_))
             return this;
-        void *ptrs_[] = {(Implements_::QueryClass(clsid))..., 0};
+        void* ptrs_[] = { (Implements_::QueryClass(clsid))..., 0 };
         for (size_t i = 0; i < sizeof...(Implements_) + 1; ++i) {
             auto ptr = ptrs_[i];
             if (ptr)
@@ -104,81 +58,86 @@ class JxxClassTemplateNE : public Implements_... {
 
 template <typename This_, typename... Implements_>
 class JxxClassTemplate : public JxxClassTemplateNE<This_, Implements_...> {
-  public:
+public:
     static JxxExports __JS_METHODS__() {
-        return JxxExports{(JxxCount)__EXPORTED_METHODS__.size(),
+        return JxxExports{ (JxxCount)__EXPORTED_METHODS__.size(),
                           __EXPORTED_METHODS__.empty()
                               ? nullptr
-                              : __EXPORTED_METHODS__.data()};
+                              : __EXPORTED_METHODS__.data() };
     }
     static JxxExports __JS_FUNCTIONS__() {
-        return JxxExports{(JxxCount)__EXPORTED_FUNCTIONS__.size(),
+        return JxxExports{ (JxxCount)__EXPORTED_FUNCTIONS__.size(),
                           __EXPORTED_FUNCTIONS__.empty()
                               ? nullptr
-                              : __EXPORTED_FUNCTIONS__.data()};
+                              : __EXPORTED_FUNCTIONS__.data() };
     }
 
-  protected:
+protected:
     static inline std::vector<JxxExport> __EXPORTED_METHODS__;
     static inline std::vector<JxxExport> __EXPORTED_FUNCTIONS__;
     static JXX_VIRTUAL_POINT ADD_EXPORT_METHOD(JxxNamePtr Name,
-                                               JxxFunction JxxFunc) {
-        __EXPORTED_METHODS__.push_back({Name, JxxFunc});
+        JxxFunction JxxFunc) {
+        __EXPORTED_METHODS__.push_back({ Name, JxxFunc });
         return JXX_VIRTUAL_POINT{};
     }
     static JXX_VIRTUAL_POINT ADD_EXPORT_FUNCTION(JxxNamePtr Name,
-                                                 JxxFunction JxxFunc) {
-        __EXPORTED_FUNCTIONS__.push_back({Name, JxxFunc});
+        JxxFunction JxxFunc) {
+        __EXPORTED_FUNCTIONS__.push_back({ Name, JxxFunc });
         return JXX_VIRTUAL_POINT{};
     }
 
-  private:
+private:
     template <typename Function_, std::size_t... I>
-    void ____call_magic_method(Function_ function, js::call_info_t &info,
-                               std::index_sequence<I...>) {
-        js::param_t params_[] = {(js::param_t(info, I))..., {}};
-        This_ *this_ = (This_ *)this;
-        info.returnValue = (this_->*function)(params_[I]...);
+    void ____call_magic_method(Function_ function, js::call_info_t& info,
+        std::index_sequence<I...>) {
+        js::param_t params_[] = { (js::param_t(info, I))..., {} };
+        This_* this_ = (This_*)this;
+        info.returnValue = (this_->*function)(info, params_[I]...);
     }
 
-  public:
+public:
     template <auto Method_, int Deny_ = DenyNew>
     static JsValueRef CHAKRA_CALLBACK _STUB_OF_MAGIC_METHOD_OF_(
-        JsValueRef callee, bool isNew, JsValueRef *arguments,
-        unsigned short argumentsCount, void *jxxClassId) {
+        JsValueRef callee, bool isNew, JsValueRef * arguments,
+        unsigned short argumentsCount, void* jxxClassId) {
         return js::xx::THROW_JS_EXCEPTION_([&]() {
             static const std::size_t N =
                 ARG_COUNT_OF_<decltype(Method_)>::value;
             CXX_EXCEPTION_IF(JsErrorInvalidArgument, argumentsCount == 0);
             int mode = isNew ? js::DenyNew : js::DenyNormal;
             CXX_EXCEPTION_IF(js::ErrorCallJxxIsDenied, mode & Deny_);
-            js::ExternalObject self(arguments[0]);
+            js::ExtObject self(arguments[0]);
             CXX_EXCEPTION_IF(JsErrorInvalidArgument, !self);
             JxxObjectPtr<IJxxObject> JxxObject = self.GetJxxObject();
             CXX_EXCEPTION_IF(JsErrorInvalidArgument, !JxxObject);
-            This_ *JxxThis = (This_ *)JxxObject->QueryClass(jxxClassId);
+            This_ * JxxThis = (This_*)JxxObject->QueryClass(jxxClassId);
             CXX_EXCEPTION_IF(JsErrorInvalidArgument, !JxxThis);
-            js::call_info_t info = {callee,
+            js::call_info_t info = { callee,
                                     isNew,
                                     arguments[0],
                                     arguments + 1,
                                     (size_t)(argumentsCount - 1),
-                                    jxxClassId};
+                                    jxxClassId };
             auto I___ = std::make_index_sequence<N>{};
             JxxThis->____call_magic_method(Method_, info, I___);
             return info.returnValue;
-        });
+            });
     };
 };
 
 template <typename T>
-class JxxOf : public JxxClassTemplate<JxxOf<T>>, public T {
-  public:
-    T *get() { return this; };
+class JxxOf : public JxxClassTemplate<JxxOf<T>, IJxxObject>, public T {
+public:
+    JxxOf() = default;
+    JxxOf(T&& r) :T(std::move(r)) {}
+    //~JxxOf() {
+    //    printf("%p deleted\n", this);
+    //};
+    T* get() { return this; };
 };
 
-template <typename T> void CHAKRA_CALLBACK CppDelete(void *ptr) {
-    delete (T *)ptr;
+template <typename T> void CHAKRA_CALLBACK CppDelete(void* ptr) {
+    delete (T*)ptr;
 }
 
 #define JXX_EXPORT_METHOD(K, CXX_NAME)                                         \
@@ -202,7 +161,7 @@ template <typename T> void CHAKRA_CALLBACK CppDelete(void *ptr) {
             #JS_NAME, &_STUB_OF_MAGIC_FUNC_OF_<&K::CXX_NAME, js::DenyNew>);
 
 JXXAPI int JxxMixinObject(JsValueRef object, JxxClassId clsid,
-                          int MixinOptions) {
+    int MixinOptions) {
     js::Object target(object);
     if (!target)
         return js::ErrorTypeMismatch;
@@ -215,7 +174,7 @@ JXXAPI int JxxMixinObject(JsValueRef object, JxxClassId clsid,
     }
     if (MixinOptions & MIXIN_METHOD) {
         for (size_t i = 0; i < def.Methods.Count; ++i) {
-            auto &item = def.Methods.Entries[i];
+            auto& item = def.Methods.Entries[i];
             JsValueRef name = js::just_is_(item.Name);
             if (!name)
                 return JsErrorOutOfMemory;
@@ -228,7 +187,7 @@ JXXAPI int JxxMixinObject(JsValueRef object, JxxClassId clsid,
     }
     if (MixinOptions & MIXIN_FUNCTION) {
         for (size_t i = 0; i < def.Functions.Count; ++i) {
-            auto &item = def.Functions.Entries[i];
+            auto& item = def.Functions.Entries[i];
             JsValueRef name = js::just_is_(item.Name);
             if (!name)
                 return JsErrorOutOfMemory;
@@ -243,6 +202,6 @@ JXXAPI int JxxMixinObject(JsValueRef object, JxxClassId clsid,
 }
 
 JXXAPI JxxClassDefinition JxxQueryClass(JxxClassId clsid) {
-    using func_t = JxxClassDefinition (*)();
+    using func_t = JxxClassDefinition(*)();
     return ((func_t)clsid)();
 }

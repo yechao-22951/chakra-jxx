@@ -38,15 +38,15 @@ static inline void throw_if_not(error_t err, bool exp) {
     if (!exp)
         throw exception_t(err);
 }
-
-template <error_t code = ErrorJsrtError> void EXCEPTION_IF(bool exp) {
-    if (exp)
-        throw exception_t(code);
-}
-template <error_t code = ErrorJsrtError> void EXCEPTION_IF(JsErrorCode err) {
-    if (err)
-        throw exception_t(err);
-};
+//
+//template <error_t code = ErrorJsrtError> void EXCEPTION_IF(bool exp) {
+//    if (exp)
+//        throw exception_t(code);
+//}
+//template <error_t code = ErrorJsrtError> void EXCEPTION_IF(JsErrorCode err) {
+//    if (err)
+//        throw exception_t(err);
+//};
 
 #define CXX_EXCEPTION_IF(code, cond)                                           \
     {                                                                          \
@@ -96,8 +96,8 @@ using more_list_ = param_t;
 struct content_t {
     ChakraBytePtr data = nullptr;
     length_t size = 0;
-    operator ChakraBytePtr *() { return &data; }
-    operator length_t *() { return &size; }
+    //operator ChakraBytePtr *() { return &data; }
+    //operator length_t *() { return &size; }
     uint8_t &operator[](size_t i) { return data[i]; }
 };
 
@@ -124,46 +124,60 @@ template <typename Return_> struct IF_EXCEPTION_RETURN {
 
 template <typename T> class Durable {
   protected:
-    T ref_;
-
+    T ref_ = T();
   public:
     Durable(){};
     Durable(T ref) : ref_(ref) {
-        if (ref_)
-            ref_->AddRef();
+        if (!ref_) return;
+        auto rc = ref_.AddRef();
+        //printf("Durable %p AddRef %d\n", ref_, rc);
     }
     Durable(const Durable &r) {
         ref_ = r.ref_;
-        if (ref_)
-            ref_->AddRef();
+        if (!ref_) return;
+        auto rc = ref_.AddRef();
+        //printf("Durable %p AddRef %d\n", ref_, rc);
     }
-    Durable(Durable &&r) { std::exchange(ref_, r.ref_); }
+    Durable(Durable &&r) { 
+        std::swap(ref_, r.ref_);
+    }
     ~Durable() {
-        if (ref_)
-            ref_->Release();
+        if (!ref_) return;
+        ref_.Release();
+        //printf("Durable %p Release %d\n", ref_, );
     }
     Durable &operator=(const Durable &r) {
         reset();
         ref_ = r.ref_;
-        if (ref_)
-            ref_->AddRef();
+        if (!ref_) return *this;
+        auto rc = ref_.AddRef();
+        //printf("Durable %p AddRef %d\n", ref_, rc);
         return *this;
     }
     Durable &operator=(Durable &&r) {
         reset();
-        std::exchange(ref_, r.ref_);
+        std::swap(ref_, r.ref_);
         return *this;
     }
+    const T & get() const {
+        return ref_;
+    }
+    T& get() {
+        return ref_;
+    }
     void reset() {
-        if (!ref_)
-            return;
-        ref_->Release();
+        if (!ref_) return;
+        ref_.Release();
+        //printf("Durable %p Release %d\n", ref_, );
         ref_ = T();
     }
     operator T() { return ref_; }
     operator const T() const { return ref_; }
-    T operator->() { return ref_; }
-    const T operator->() const { return ref_; }
+    T * operator->() { return &ref_; }
+    const T * operator->() const { return &ref_; }
+    operator bool () const {
+        return (bool)ref_;
+    }
 };
 
 ////
@@ -192,9 +206,9 @@ template <typename T> class Durable {
 
 template <typename FN> struct ARG_COUNT_OF_;
 template <typename R, typename This_, typename... ARGS>
-struct ARG_COUNT_OF_<R (This_::*)(ARGS...)> {
+struct ARG_COUNT_OF_<R (This_::*)(js::call_info_t&, ARGS...)> {
     static const size_t value = sizeof...(ARGS);
 };
-template <typename R, typename... ARGS> struct ARG_COUNT_OF_<R (*)(ARGS...)> {
+template <typename R, typename... ARGS> struct ARG_COUNT_OF_<R (*)(js::call_info_t&, ARGS...)> {
     static const size_t value = sizeof...(ARGS);
 };
