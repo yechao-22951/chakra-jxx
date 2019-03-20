@@ -176,7 +176,7 @@
     <ClInclude Include="js.base.h" />
     <ClInclude Include="js.function.h" />
     <ClInclude Include="jxx.api.h" />
-    <ClInclude Include="jxx.asio.h" />
+    <ClInclude Include="jxx.asio.tcp.h" />
     <ClInclude Include="jxx.class.h" />
     <ClInclude Include="jxx.object.h" />
     <ClInclude Include="jxx.runtime.h" />

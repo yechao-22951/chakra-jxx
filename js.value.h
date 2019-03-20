@@ -26,6 +26,7 @@ namespace js {
     const uint64_t _Primitive = _Null | _Undefined | _String | _Number;
     const uint64_t _AnyOrNothing = ~(__BIT << JsInvalidValue);
     const uint64_t _BufferLike = _Buffer | _DataView | _TypedArray;
+    const uint64_t _NotCare = _AnyOrNothing;
 
     struct __prototype__ {};
     static const __prototype__ __proto__;
@@ -104,24 +105,24 @@ namespace js {
     template <uint64_t TypeMask_> class _as_the : public value_ref_t {
     public:
         _as_the(JsValueRef js_val) : value_ref_t(js_val) {
-            throw_if_not(ErrorTypeMismatch, is_one_of<TypeMask_>());
+            CXX_EXCEPTION_IFNOT(ErrorTypeMismatch, is_one_of<TypeMask_>());
         }
 
         _as_the(const value_ref_t& right) : value_ref_t(right) {
-            throw_if_not(ErrorTypeMismatch, is_one_of<TypeMask_>());
+            CXX_EXCEPTION_IFNOT(ErrorTypeMismatch, is_one_of<TypeMask_>());
         }
 
         _as_the(const _as_the& right) : value_ref_t(right) {}
 
         template <uint64_t TypeMask2_>
         _as_the(const _as_the& right) : _as_the(right.js_val_) {
-            throw_if_not(ErrorTypeMismatch, is_one_of<TypeMask_>());
+            CXX_EXCEPTION_IFNOT(ErrorTypeMismatch, is_one_of<TypeMask_>());
         }
 
         _as_the(const param_t& param) {
             JsValueRef right = param[0];
             set(right);
-            throw_if_not(ErrorTypeMismatch, is_one_of<TypeMask_>());
+            CXX_EXCEPTION_IFNOT(ErrorTypeMismatch, is_one_of<TypeMask_>());
         }
 
         operator value_ref_t() const { return *(value_ref_t*)this; }

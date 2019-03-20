@@ -18,18 +18,20 @@ namespace js {
         return jsrt->io_context();
     }
 
-    class _tcp_socket_t : public tcp::socket {
-    public:
-        _tcp_socket_t() : tcp::socket(current_io_context()) {}
-        _tcp_socket_t(tcp::socket&& r) : tcp::socket(std::move(r)) {};
-    };
-    using tcp_socket_t = JxxOf<_tcp_socket_t>;
+    //class _tcp_socket_t : public tcp::socket {
+    //public:
+    //    _tcp_socket_t() : tcp::socket(current_io_context()) {}
+    //    _tcp_socket_t(tcp::socket&& r) : tcp::socket(std::move(r)) {};
+    //};
+    using tcp_socket_t = JxxOf<tcp::socket>;
 
     class _tcp_acceptor_t : public tcp::acceptor {
     public:
         _tcp_acceptor_t() : tcp::acceptor(current_io_context()) {}
     };
     using tcp_acceptor_t = JxxOf<_tcp_acceptor_t>;
+
+    using tcp_resolver_t = JxxOf<tcp::resolver>;
 
     _as_the<_Object> CreateAcceptor(
         _as_the<_String> addr,
@@ -47,6 +49,64 @@ namespace js {
         acceptor_->bind(endpoint);
         return ExtObject::Create(acceptor_, nullptr);
     }
+
+    //_as_the<_Object> Resolve(
+    //    _as_the<_String> remote,
+    //    _as_the<_String> port,
+    //    _as_the<_Object | _Optional> options)
+    //{
+    //    JxxObjectPtr<tcp_acceptor_t> acceptor_ = new tcp_acceptor_t();
+    //    if (!acceptor_) return JS_INVALID_REFERENCE;
+    //    std::string remote_ = get_as_<std::string>(addr);
+    //    std::string port_ = get_as_<std::string>(port);
+    //    tcp::resolver resolver(current_io_context());
+    //    tcp::endpoint endpoint = *resolver.resolve(remote_, port_).begin();
+    //    acceptor_->open(endpoint.protocol());
+    //    acceptor_->set_option(tcp::acceptor::reuse_address(true));
+    //    acceptor_->bind(endpoint);
+    //    return ExtObject::Create(acceptor_, nullptr);
+    //}
+
+    _as_the<_Object> Socket(
+        _as_the<_Number> ip_ver,
+        _as_the<_Object | _Optional> options)
+    {
+        int IP_VERSION = get_as_<int>(ip_ver);
+        CXX_EXCEPTION_IF(JsErrorInvalidArgument, IP_VERSION != 4 && IP_VERSION != 6);
+        JxxObjectPtr<tcp_socket_t> tcp_socket = new tcp_socket_t(current_io_context());
+        CXX_EXCEPTION_IF(JsErrorOutOfMemory, !tcp_socket);
+        std::error_code ec;
+        tcp_socket->open(IP_VERSION == 4 ? tcp::v4() : tcp::v6(), ec);
+        CXX_EXCEPTION_IF(ErrorAsioError, ec);
+        return ExtObject::Create(tcp_socket, nullptr);
+    }
+
+    //_as_the<_Boolean> AsyncConnect(
+    //    _as_the<_Object> socket,
+    //    _as_the<_String> remote,
+    //    _as_the<_String> port,
+    //    _as_the<_Object | _Optional> options)
+    //{
+    //    Durable<ExtObject> jsSocket(socket);
+    //    JxxObjectPtr<tcp_socket_t> cxxSocket = jsSocket->TryGetAs<tcp_socket_t>();
+    //    if (!cxxSocket) return just_is_(false);
+    //    std::string remote_ = get_as_<std::string>(remote);
+    //    std::string port_ = get_as_<std::string>(port);
+    //    tcp::resolver resolver(cxxSocket->get_io_context());
+    //    resolver.async_resolve(remote_, port_, [jsSocket, cxxSocket](std::error_code ec, auto it) {
+    //        if (ec) {
+
+    //        }
+    //        else {
+    //            cxxSocket->async_connect(it, [](std::error_code ec) {
+
+    //                });
+    //        });
+
+    //    }
+
+    //    return just_is_(true);
+    //}
 
     bool do_accept(ExtObject acceptor_) {
         Durable<ExtObject> jsAcceptor(acceptor_);

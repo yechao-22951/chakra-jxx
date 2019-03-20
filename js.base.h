@@ -11,6 +11,7 @@ const int ErrorTypeMismatch = -1;
 const int ErrorCallJxxIsDenied = -2;
 const int ErrorInvalidArrayIndex = -3;
 const int ErrorNotImplement = -4;
+const int ErrorAsioError = -5;
 
 using Int = int;
 using Real = double;
@@ -34,20 +35,6 @@ class exception_t : public std::exception {
 #define STRINGIFY(x) STRINGIFY_(x)
 #define ERR_MSG(x) x, __FILE__ ":" STRINGIFY(__LINE__) " : " #x
 
-static inline void throw_if_not(error_t err, bool exp) {
-    if (!exp)
-        throw exception_t(err);
-}
-//
-//template <error_t code = ErrorJsrtError> void EXCEPTION_IF(bool exp) {
-//    if (exp)
-//        throw exception_t(code);
-//}
-//template <error_t code = ErrorJsrtError> void EXCEPTION_IF(JsErrorCode err) {
-//    if (err)
-//        throw exception_t(err);
-//};
-
 #define CXX_EXCEPTION_IF(code, cond)                                           \
     {                                                                          \
         do {                                                                   \
@@ -55,6 +42,8 @@ static inline void throw_if_not(error_t err, bool exp) {
                 throw ::js::exception_t(code);                                 \
         } while (0);                                                           \
     }
+
+#define CXX_EXCEPTION_IFNOT(code,cond)      CXX_EXCEPTION_IF(code,!(cond))
 
 #define JSERR_TO_EXCEPTION(err)                                                \
     do {                                                                       \
@@ -96,8 +85,6 @@ using more_list_ = param_t;
 struct content_t {
     ChakraBytePtr data = nullptr;
     length_t size = 0;
-    //operator ChakraBytePtr *() { return &data; }
-    //operator length_t *() { return &size; }
     uint8_t &operator[](size_t i) { return data[i]; }
 };
 
@@ -130,13 +117,11 @@ template <typename T> class Durable {
     Durable(T ref) : ref_(ref) {
         if (!ref_) return;
         auto rc = ref_.AddRef();
-        //printf("Durable %p AddRef %d\n", ref_, rc);
     }
     Durable(const Durable &r) {
         ref_ = r.ref_;
         if (!ref_) return;
         auto rc = ref_.AddRef();
-        //printf("Durable %p AddRef %d\n", ref_, rc);
     }
     Durable(Durable &&r) { 
         std::swap(ref_, r.ref_);
@@ -144,14 +129,12 @@ template <typename T> class Durable {
     ~Durable() {
         if (!ref_) return;
         ref_.Release();
-        //printf("Durable %p Release %d\n", ref_, );
     }
     Durable &operator=(const Durable &r) {
         reset();
         ref_ = r.ref_;
         if (!ref_) return *this;
         auto rc = ref_.AddRef();
-        //printf("Durable %p AddRef %d\n", ref_, rc);
         return *this;
     }
     Durable &operator=(Durable &&r) {
@@ -168,7 +151,6 @@ template <typename T> class Durable {
     void reset() {
         if (!ref_) return;
         ref_.Release();
-        //printf("Durable %p Release %d\n", ref_, );
         ref_ = T();
     }
     operator T() { return ref_; }

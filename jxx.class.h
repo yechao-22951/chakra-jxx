@@ -128,11 +128,8 @@ public:
 template <typename T>
 class JxxOf : public JxxClassTemplate<JxxOf<T>, IJxxObject>, public T {
 public:
-    JxxOf() = default;
-    JxxOf(T&& r) :T(std::move(r)) {}
-    //~JxxOf() {
-    //    printf("%p deleted\n", this);
-    //};
+    template < typename ...ARGS>
+    JxxOf(ARGS&&...args) : T(std::forward<ARGS>(args)...) {}
     T* get() { return this; };
 };
 

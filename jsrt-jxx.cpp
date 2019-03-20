@@ -8,7 +8,7 @@
 #include "js.value.h"
 #include "jxx.class.h"
 #include "jxx.runtime.h"
-#include "jxx.asio.h"
+#include "jxx.asio.tcp.h"
 
 using namespace js;
 
