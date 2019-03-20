@@ -10,11 +10,6 @@
 
 using jxx_counter_t = std::atomic<uint32_t>;
 
-//template <typename From_, typename To_> To_ *query_cast(From_ *from) {
-//    return from->QueryClass(jxx_clsid_of(To_));
-//}
-
-
 struct JXX_VIRTUAL_POINT {};
 
 template <typename This_, typename... Implements_>
@@ -34,7 +29,6 @@ protected:
 public:
     virtual JxxRefCount AddRef() {
         auto rc = ++ref_count_;
-        //printf("%p : %d\n", this, rc);
         return rc;
     }
     virtual JxxRefCount Release() {

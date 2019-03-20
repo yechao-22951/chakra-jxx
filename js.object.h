@@ -19,6 +19,11 @@ namespace js {
         JsCreatePropertyId(name.c_str(), name.size(), &out);
         return out;
     }
+    propid_t PropertyId(const StringView& name) {
+        JsValueRef out;
+        JsCreatePropertyId(name.data(), name.size(), &out);
+        return out;
+    }
 
     propid_t PropertyId(symbol_t sym) {
         JsValueRef out;
@@ -88,9 +93,13 @@ namespace js {
         bool SetProperty(const char* name, const value_ref_t& v) {
             return SetProperty(PropertyId(name), v) == JsNoError;
         }
-        bool SetProperty(const String & name, const value_ref_t& v) {
+        bool SetProperty(const String& name, const value_ref_t& v) {
             return SetProperty(PropertyId(name), v) == JsNoError;
         }
+        bool SetProperty(const StringView& name, const value_ref_t& v) {
+            return SetProperty(PropertyId(name), v) == JsNoError;
+        }
+
 
         value_ref_t GetProperty(propid_t pid) const {
             value_ref_t out;
@@ -99,7 +108,7 @@ namespace js {
                 return JS_INVALID_REFERENCE;
             return out;
         }
-        value_ref_t GetProperty(const char * name) const {
+        value_ref_t GetProperty(const char* name) const {
             propid_t pid = PropertyId(name);
             return GetProperty(pid);
         }
