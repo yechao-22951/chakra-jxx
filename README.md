@@ -1,6 +1,17 @@
 # chakra-jxx
 ChakraCore C++ binding helper
 
+## Plan
+
+1. Wrap most JSRT APIs.
+2. Create a framework for nodejs-like system, including ioloop, module system, native module support and utils.  
+   Combine ASIO and Chakra.
+3. Implements some Low-Level APIs for FileSystem, Network, and Windows Reisttry(maybe). At the same time, an simple
+   privileges system will be build ( native-level sandbox ).
+4. Using javascript to implement the most nodejs traits.
+5. Import co-routine supporting.
+6. ...
+
 ## jsrt wrapper
 
 All js.* files are jsrt function wrapper, all things in namespace `js`.
