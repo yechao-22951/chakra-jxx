@@ -99,7 +99,7 @@ public:
                 ARG_COUNT_OF_<decltype(Method_)>::value;
             CXX_EXCEPTION_IF(JsErrorInvalidArgument, argumentsCount == 0);
             int mode = isNew ? js::DenyNew : js::DenyNormal;
-            CXX_EXCEPTION_IF(js::ErrorCallJxxIsDenied, mode & Deny_);
+            CXX_EXCEPTION_IF(js::ErrorCallModeIsDenied, mode & Deny_);
             js::ExtObject self(arguments[0]);
             CXX_EXCEPTION_IF(JsErrorInvalidArgument, !self);
             JxxObjectPtr<IJxxObject> JxxObject = self.GetJxxObject();
@@ -123,7 +123,7 @@ template <typename T>
 class JxxOf : public JxxClassTemplate<JxxOf<T>, IJxxObject>, public T {
 public:
     template < typename ...ARGS>
-    JxxOf(ARGS&&...args) : T(std::forward<ARGS>(args)...) {}
+    JxxOf(ARGS&& ...args) : T(std::forward<ARGS>(args)...) {}
     T* get() { return this; };
 };
 
@@ -166,11 +166,11 @@ JXXAPI int JxxMixinObject(JsValueRef object, JxxClassId clsid,
     if (MixinOptions & MIXIN_METHOD) {
         for (size_t i = 0; i < def.Methods.Count; ++i) {
             auto& item = def.Methods.Entries[i];
-            JsValueRef name = js::just_is_(item.Name);
+            JsValueRef name = js::Just(item.Name);
             if (!name)
                 return JsErrorOutOfMemory;
             js::Function fn =
-                js::Function::FromNativeFunction(item.Callee, name, clsid);
+                js::Function::JsrtNative(item.Callee, name, clsid);
             if (!fn)
                 return JsErrorOutOfMemory;
             target.SetProperty(js::PropertyId(item.Name), fn);
@@ -179,11 +179,11 @@ JXXAPI int JxxMixinObject(JsValueRef object, JxxClassId clsid,
     if (MixinOptions & MIXIN_FUNCTION) {
         for (size_t i = 0; i < def.Functions.Count; ++i) {
             auto& item = def.Functions.Entries[i];
-            JsValueRef name = js::just_is_(item.Name);
+            JsValueRef name = js::Just(item.Name);
             if (!name)
                 return JsErrorOutOfMemory;
             js::Function fn =
-                js::Function::FromNativeFunction(item.Callee, name, clsid);
+                js::Function::JsrtNative(item.Callee, name, clsid);
             if (!fn)
                 return JsErrorOutOfMemory;
             target.SetProperty(js::PropertyId(item.Name), fn);

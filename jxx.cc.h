@@ -25,7 +25,7 @@ namespace js {
             auto it = strings_.find(str);
             if (it != strings_.end())
                 return it->second;
-            Value js_str = just_is_(str);
+            Value js_str = Just(str);
             if (!js_str)
                 return js_str;
             strings_[str] = (js_str);

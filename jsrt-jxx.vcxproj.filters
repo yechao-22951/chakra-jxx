@@ -53,16 +53,10 @@
     <ClInclude Include="jxx.class.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="jxx.object.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="mode.runtime.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="jxx.cc.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="jxx.runtime.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="jxx.api.h">
@@ -71,9 +65,24 @@
     <ClInclude Include="jxx.asio.tcp.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="jxx.module.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jam.winreg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jxx.object.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jxx.runtime.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="api.todo.md" />
+    <None Include="test.js">
+      <Filter>头文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

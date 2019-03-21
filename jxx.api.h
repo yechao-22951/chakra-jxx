@@ -29,13 +29,21 @@ JXXAPI JsContextRef JxxCreateContext(JxxRuntime* runtime);
 
 JXXAPI JsValueRef JxxGetString(JxxCharPtr ptr, size_t len = 0);
 
-JXXAPI JsPropertyIdRef JxxGetPropertyId(JxxCharPtr ptr, size_t len=0);
+JXXAPI JsPropertyIdRef JxxGetPropertyId(JxxCharPtr ptr, size_t len = 0);
 
 JXXAPI JsValueRef JxxQueryProto(JxxCharPtr ptr);
 
 JXXAPI JsValueRef JxxRegisterProto(JxxCharPtr ptr, JsValueRef proto);
 
 JXXAPI JsValueRef JxxGetSymbol(JxxCharPtr ptr);
+
+JXXAPI JsValueRef JxxRunScript(JxxCharPtr code, size_t len);
+
+JXXAPI JsValueRef JxxRunScript(JsValueRef code);
+
+JXXAPI JsValueRef JxxJsonParse(JxxCharPtr code, size_t len);
+
+JXXAPI JsValueRef JxxReadFileContent(JxxCharPtr path, size_t len);
 
 struct JxxParents {
     size_t Count;
@@ -120,8 +128,8 @@ public:
     }
     //////////////////////////////////////////////////
     JxxObjectPtr& attach(JxxObject_* ptr) { return reset(ptr, false); }
-    JxxObject_* detach() { 
-        return std::exchange(nake_, nullptr); 
+    JxxObject_* detach() {
+        return std::exchange(nake_, nullptr);
     }
     JxxObjectPtr& reset() {
         auto old = std::exchange(nake_, nullptr);
@@ -157,7 +165,7 @@ public:
     //////////////////////////////////////////////////
     operator bool() const { return nake_ != nullptr; }
     //
-    operator JxxObject_ * () {
+    operator JxxObject_* () {
         return nake_;
     }
 };

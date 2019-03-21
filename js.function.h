@@ -31,7 +31,7 @@ namespace js {
             return THROW_JS_EXCEPTION_([&]() {
                 CXX_EXCEPTION_IF(JsErrorInvalidArgument, argumentsCount == 0);
                 int mode = isNew ? DenyNew : DenyNormal;
-                CXX_EXCEPTION_IF(ErrorCallJxxIsDenied, mode & Deny_);
+                CXX_EXCEPTION_IF(ErrorCallModeIsDenied, mode & Deny_);
                 call_info_t info = { callee,
                                     isNew,
                                     arguments[0],
@@ -59,7 +59,7 @@ namespace js {
                 static const std::size_t N = ARG_COUNT_OF_<decltype(Funtion_)>::value;
                 CXX_EXCEPTION_IF(JsErrorInvalidArgument, argumentsCount == 0);
                 int mode = isNew ? DenyNew : DenyNormal;
-                CXX_EXCEPTION_IF(ErrorCallJxxIsDenied, mode & Deny_);
+                CXX_EXCEPTION_IF(ErrorCallModeIsDenied, mode & Deny_);
                 call_info_t info = { callee,
                                     isNew,
                                     arguments[0],
@@ -92,23 +92,23 @@ namespace js {
         }
 
     public:
-        static value_ref_t FromNativeFunction(JsNativeFunction func,
+        static value_ref_t JsrtNative(JsNativeFunction func,
             JsValueRef name, void* data) {
             value_ref_t out;
             JsCreateNamedFunction(name, func, data, out.addr());
             return out;
         }
 
-        template <normal_func_t Function_>
-        static value_ref_t FromNormal(JsValueRef name, void* data) {
-            value_ref_t out;
-            JsCreateNamedFunction(name, xx::_STUB_OF_NORMAL_FUNC_OF_<Function_>,
-                data, out.addr());
-            return out;
-        }
+        //template <normal_func_t Function_>
+        //static value_ref_t FromNormal(JsValueRef name, void* data) {
+        //    value_ref_t out;
+        //    JsCreateNamedFunction(name, xx::_STUB_OF_NORMAL_FUNC_OF_<Function_>,
+        //        data, out.addr());
+        //    return out;
+        //}
 
         template <auto Function_>
-        static value_ref_t FromMagic(JsValueRef name, void* data) {
+        static value_ref_t Magic(JsValueRef name = nullptr, void* data = nullptr) {
             value_ref_t out;
             JsCreateNamedFunction(name, xx::_STUB_OF_MAGIC_FUNC_OF_<Function_>,
                 data, out.addr());

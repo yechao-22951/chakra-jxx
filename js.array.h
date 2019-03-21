@@ -31,21 +31,21 @@ class array_accessor_ : public object_accessor_<_Array> {
         value_ref_t length = GetProperty(id);
         if (!length.is<_Number>())
             return 0;
-        return get_as_<Int>(length);
+        return GetAs<Int>(length);
     }
     value_ref_t GetItem(Int index) {
-        auto i = just_is_<Int>(index);
+        auto i = Just<Int>(index);
         value_ref_t out;
         JsGetIndexedProperty(get(), i, out.addr());
         return out;
     }
     bool SetItem(Int index, value_ref_t value) {
-        auto i = just_is_<Int>(index);
+        auto i = Just<Int>(index);
         auto err = JsSetIndexedProperty(get(), i, value);
         return err == JsNoError;
     }
     IndexedProperty operator[](int index) {
-        return IndexedProperty(*this, just_is_<Int>(index));
+        return IndexedProperty(*this, Just<Int>(index));
     }
 
   public:

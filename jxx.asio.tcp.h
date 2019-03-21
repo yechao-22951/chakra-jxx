@@ -18,19 +18,125 @@ namespace js {
         return jsrt->io_context();
     }
 
-    //class _tcp_socket_t : public tcp::socket {
-    //public:
-    //    _tcp_socket_t() : tcp::socket(current_io_context()) {}
-    //    _tcp_socket_t(tcp::socket&& r) : tcp::socket(std::move(r)) {};
-    //};
+    _as_the<_Number> _RegCreateKey(
+        _as_the<_Number> hkey,
+        _as_the<_String> subkey,
+        _as_the<_Object | _Optional> options)
+    {
+        HKEY h = VoidPtr<HKEY>(hkey);
+        std::string path = GetAs<String>(subkey);
+        HKEY out = nullptr;
+        CXX_EXCEPTION_IF(ErrorSyscall, RegCreateKeyA(h, path.c_str(), &out));
+        return VoidPtr(out);
+    }
+
+    nullptr_t _RegClose(_as_the<_Number> hkey)
+    {
+        HKEY h = VoidPtr<HKEY>(hkey);
+        CXX_EXCEPTION_IF(ErrorSyscall, ::RegCloseKey(h));
+        return nullptr;
+    }
+
+    _as_the<_Number | _Buffer | _String | _Nothing>
+        _RegQueryValue(
+            _as_the<_Number> hkey,
+            _as_the<_String> value,
+            _as_the<_Number | _Optional> flags = nullptr)
+    {
+        HKEY h = VoidPtr<HKEY>(hkey);
+        std::string name = GetAs<String>(value);
+        DWORD dwType = 0, cbData = 0;
+        CXX_EXCEPTION_IF(ErrorSyscall, ::RegQueryValueExA(h, name.c_str(), 0, &dwType, NULL, &cbData));
+        if (dwType == REG_DWORD || dwType == REG_DWORD_BIG_ENDIAN) {
+            DWORD dwValue = 0;
+            CXX_EXCEPTION_IF(ErrorSyscall,
+                ::RegQueryValueExA(h, name.c_str(), 0, &dwType, (LPBYTE)& dwValue, &cbData));
+            return Just<int>(dwValue);
+        }
+        if (dwType == REG_QWORD || dwType == REG_QWORD_LITTLE_ENDIAN) {
+            uint64_t dwValue = 0;
+            CXX_EXCEPTION_IF(ErrorSyscall,
+                ::RegQueryValueExA(h, name.c_str(), 0, &dwType, (LPBYTE)& dwValue, &cbData));
+            return Just<double>(dwValue);
+        }
+        if (dwType == REG_BINARY) {
+            ArrayBuffer buffer = ArrayBuffer::Alloc(cbData);
+            content_t conent = buffer.GetContent();
+            CXX_EXCEPTION_IF(ErrorSyscall,
+                ::RegQueryValueExA(h, name.c_str(), 0, &dwType, (LPBYTE)conent.data, &cbData));
+            return buffer;
+        }
+        if (dwType == REG_EXPAND_SZ || dwType == REG_SZ) {
+            std::string data; data.resize(cbData);
+            CXX_EXCEPTION_IF(ErrorSyscall,
+                ::RegQueryValueExA(h, name.c_str(), 0, &dwType, (LPBYTE)data.data(), &cbData));
+            data.resize(cbData - 1);
+            return Just(data);
+        }
+        if (dwType == REG_MULTI_SZ) {
+            std::vector<char> data(cbData);
+            CXX_EXCEPTION_IF(ErrorSyscall,
+                ::RegQueryValueExA(h, name.c_str(), 0, &dwType, (LPBYTE)data.data(), &cbData));
+            std::vector<std::string> strings;
+            const char* scan = data.data();
+            const char* tail = scan + data.size();
+            while (*scan && scan < tail) {
+                std::string line = scan;
+                size_t len = line.size();
+                strings.push_back(std::move(scan));
+                scan += (len + 1);
+            }
+            Array arr = Array::Create(strings.size());
+            for (size_t i = 0; i < strings.size(); ++i) {
+                arr.SetItem(i, Just(strings[i]));
+            }
+            return arr;
+        }
+        return nullptr;
+    }
+
+    JsValueRef _RegEnumKey(
+        _as_the<_Number> hkey,
+        _as_the<_Number> mode,
+        Function callback
+    ) {
+        HKEY h = VoidPtr<HKEY>(hkey);
+        int mode_ = GetAs<int>(mode);
+        DWORD cSubKeys, cbMaxSubKeyLen, cValues, cMaxValueNameLen;
+        CXX_EXCEPTION_IF(ErrorSyscall, ::RegQueryInfoKeyA(h,
+            nullptr, nullptr, nullptr, &cSubKeys,
+            &cbMaxSubKeyLen, nullptr, &cValues, &cMaxValueNameLen,
+            nullptr, nullptr, nullptr));
+        cbMaxSubKeyLen ++; 
+        cMaxValueNameLen ++;
+        if (mode_ & 1) {
+            std::vector<char> KeyName(cbMaxSubKeyLen);
+            for (DWORD i = 0; i < cSubKeys; ++i) {
+
+                CXX_EXCEPTION_IF(ErrorSyscall, ::RegEnumKeyA(
+                    h, i, KeyName.data(), cbMaxSubKeyLen));
+
+                Value break_ = callback.Call(Context::Global(), Just(i), Just(KeyName.data()));
+                if (break_.as_jsbool())
+                    break;
+            }
+        }
+        if (mode_ & 2) {
+            std::vector<char> ValueName(cMaxValueNameLen);
+            for (DWORD i = 0; i < cValues; ++i) {
+                DWORD dwValueLen = cMaxValueNameLen;
+                CXX_EXCEPTION_IF(ErrorSyscall, ::RegEnumValueA(
+                    h, i, ValueName.data(), &dwValueLen, 0, 0, 0, 0));
+                Value break_ = callback.Call(Context::Global(), Just(i), Just(ValueName.data()));
+                if (break_.as_jsbool())
+                    break;
+            }
+        }
+        return nullptr;
+    }
+
     using tcp_socket_t = JxxOf<tcp::socket>;
-
-    class _tcp_acceptor_t : public tcp::acceptor {
-    public:
-        _tcp_acceptor_t() : tcp::acceptor(current_io_context()) {}
-    };
-    using tcp_acceptor_t = JxxOf<_tcp_acceptor_t>;
-
+    using tcp_acceptor_t = JxxOf<tcp::acceptor>;
     using tcp_resolver_t = JxxOf<tcp::resolver>;
 
     _as_the<_Object> CreateAcceptor(
@@ -38,10 +144,10 @@ namespace js {
         _as_the<_String> port,
         _as_the<_Object | _Optional> options)
     {
-        JxxObjectPtr<tcp_acceptor_t> acceptor_ = new tcp_acceptor_t();
+        JxxObjectPtr<tcp_acceptor_t> acceptor_ = new tcp_acceptor_t(current_io_context());
         if (!acceptor_) return JS_INVALID_REFERENCE;
-        std::string remote_ = get_as_<std::string>(addr);
-        std::string port_ = get_as_<std::string>(port);
+        std::string remote_ = GetAs<std::string>(addr);
+        std::string port_ = GetAs<std::string>(port);
         tcp::resolver resolver(current_io_context());
         tcp::endpoint endpoint = *resolver.resolve(remote_, port_).begin();
         acceptor_->open(endpoint.protocol());
@@ -57,8 +163,8 @@ namespace js {
     //{
     //    JxxObjectPtr<tcp_acceptor_t> acceptor_ = new tcp_acceptor_t();
     //    if (!acceptor_) return JS_INVALID_REFERENCE;
-    //    std::string remote_ = get_as_<std::string>(addr);
-    //    std::string port_ = get_as_<std::string>(port);
+    //    std::string remote_ = GetAs<std::string>(addr);
+    //    std::string port_ = GetAs<std::string>(port);
     //    tcp::resolver resolver(current_io_context());
     //    tcp::endpoint endpoint = *resolver.resolve(remote_, port_).begin();
     //    acceptor_->open(endpoint.protocol());
@@ -71,7 +177,7 @@ namespace js {
         _as_the<_Number> ip_ver,
         _as_the<_Object | _Optional> options)
     {
-        int IP_VERSION = get_as_<int>(ip_ver);
+        int IP_VERSION = GetAs<int>(ip_ver);
         CXX_EXCEPTION_IF(JsErrorInvalidArgument, IP_VERSION != 4 && IP_VERSION != 6);
         JxxObjectPtr<tcp_socket_t> tcp_socket = new tcp_socket_t(current_io_context());
         CXX_EXCEPTION_IF(JsErrorOutOfMemory, !tcp_socket);
@@ -89,9 +195,9 @@ namespace js {
     //{
     //    Durable<ExtObject> jsSocket(socket);
     //    JxxObjectPtr<tcp_socket_t> cxxSocket = jsSocket->TryGetAs<tcp_socket_t>();
-    //    if (!cxxSocket) return just_is_(false);
-    //    std::string remote_ = get_as_<std::string>(remote);
-    //    std::string port_ = get_as_<std::string>(port);
+    //    if (!cxxSocket) return Just(false);
+    //    std::string remote_ = GetAs<std::string>(remote);
+    //    std::string port_ = GetAs<std::string>(port);
     //    tcp::resolver resolver(cxxSocket->get_io_context());
     //    resolver.async_resolve(remote_, port_, [jsSocket, cxxSocket](std::error_code ec, auto it) {
     //        if (ec) {
@@ -105,7 +211,7 @@ namespace js {
 
     //    }
 
-    //    return just_is_(true);
+    //    return Just(true);
     //}
 
     bool do_accept(ExtObject acceptor_) {
@@ -133,20 +239,20 @@ namespace js {
     _as_the<_Boolean> Listen(_as_the<_Object> acceptor) {
         ExtObject jsAcceptor(acceptor);
         Function onConnection = jsAcceptor["onConnection"];
-        if (!onConnection) return just_is_(false);
+        if (!onConnection) return Just(false);
         auto cxxAcceptor = jsAcceptor.TryGetAs<tcp_acceptor_t>();
-        if (!cxxAcceptor) return just_is_(false);
+        if (!cxxAcceptor) return Just(false);
         cxxAcceptor->listen();
-        if (!do_accept(jsAcceptor)) return just_is_(false);
-        return just_is_(true);
+        if (!do_accept(jsAcceptor)) return Just(false);
+        return Just(true);
     }
 
     _as_the<_Boolean> AsyncRead(_as_the<_Object> socket, _as_the<_BufferLike> buffer)
     {
         Durable<ExtObject> jsSocket(socket);
-        if (!jsSocket) return just_is_(false);
+        if (!jsSocket) return Just(false);
         JxxObjectPtr<tcp_socket_t> cxxSocket = jsSocket->TryGetAs<tcp_socket_t>();
-        if (!cxxSocket) return just_is_(false);
+        if (!cxxSocket) return Just(false);
         Durable<value_ref_t> jsBuffer = buffer;
         content_t cxxBuffer = GetContent(jsBuffer.get());
         cxxSocket->async_read_some(asio::buffer(cxxBuffer.data, cxxBuffer.size),
@@ -156,22 +262,22 @@ namespace js {
                 if (!callback) return;
                 callback.Call(
                     jsSocket.get(),
-                    just_is_(ec.value()),
-                    just_is_(read),
+                    Just(ec.value()),
+                    Just(read),
                     jsBuffer.get()
                 );
             });
-        return just_is_(true);
+        return Just(true);
     };
 
     _as_the<_Boolean> AsyncReadEx(_as_the<_Object> socket, _as_the<_Number> bufferSize)
     {
         Durable<ExtObject> jsSocket(socket);
-        if (!jsSocket) return just_is_(false);
+        if (!jsSocket) return Just(false);
         JxxObjectPtr<tcp_socket_t> cxxSocket = jsSocket->TryGetAs<tcp_socket_t>();
-        if (!cxxSocket) return just_is_(false);
-        Durable<ArrayBuffer> jsBuffer = ArrayBuffer::Alloc(get_as_<int>(bufferSize));
-        if (!jsBuffer) return just_is_(false);
+        if (!cxxSocket) return Just(false);
+        Durable<ArrayBuffer> jsBuffer = ArrayBuffer::Alloc(GetAs<int>(bufferSize));
+        if (!jsBuffer) return Just(false);
         content_t cxxBuffer = GetContent(jsBuffer.get());
         cxxSocket->async_read_some(
             asio::buffer(cxxBuffer.data, cxxBuffer.size),
@@ -181,21 +287,21 @@ namespace js {
                 if (!callback) return;
                 callback.Call(
                     jsSocket.get(),
-                    just_is_(ec.value()),
-                    just_is_(read),
+                    Just(ec.value()),
+                    Just(read),
                     jsBuffer.get()
                 );
                 if (!ec)
                     AsyncReadEx(jsSocket.get(), bufferSize);
             });
 
-        return just_is_(true);
+        return Just(true);
     };
 
     _as_the<_Boolean> AsyncWrite(_as_the<_Object> socket, _as_the<_BufferLike> buffer)
     {
         Durable<ExtObject> jsSocket(socket);
-        if (!jsSocket) return just_is_(false);
+        if (!jsSocket) return Just(false);
         JxxObjectPtr<tcp_socket_t> cxxSocket = jsSocket->TryGetAs<tcp_socket_t>();
         content_t cxxBuffer = GetContent(buffer);
         Durable<value_ref_t> jsBuffer(buffer);
@@ -206,12 +312,12 @@ namespace js {
                 if (!onWritten) return;
                 onWritten.Call(
                     jsSocket.get(),
-                    just_is_(ec.value()),
-                    just_is_(written),
+                    Just(ec.value()),
+                    Just(written),
                     jsBuffer.get()
                 );
             });
-        return just_is_(true);
+        return Just(true);
     }
 
 }; // namespace js

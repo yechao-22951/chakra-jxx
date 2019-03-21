@@ -75,6 +75,15 @@ namespace js {
 
         operator bool() const { return nake_ != nullptr; }
 
+        bool as_jsbool() const {
+            if (!nake_)return false;
+            JsValueRef jsbool;
+            JSERR_TO_EXCEPTION(JsConvertValueToBoolean(nake_, &jsbool));
+            bool out = false;
+            JsBooleanToBool(jsbool, &out);
+            return out;
+        }
+
         bool is_property_id(JsPropertyIdType* type) {
             JsPropertyIdType type_;
             auto err = JsGetPropertyIdType(nake_, &type_);
@@ -135,6 +144,8 @@ namespace js {
     class base_value_ : public Accessor_ {
     public:
         base_value_() = default;
+        base_value_(param_t parma) : base_value_(parma[0]) {
+        }
         base_value_(value_ref_t value) {
             CXX_EXCEPTION_IF(ErrorTypeMismatch, !set(value));
         }
