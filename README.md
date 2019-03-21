@@ -33,3 +33,63 @@ All js.* files are jsrt function wrapper, all things in namespace `js`.
         more_list__ more                        // this parameter more_list__ is an array of rest arguments.
     );
     ```
+
+- Simple Type System : JxxClass, I use it to defense Type-Confusion and implement inherition.
+
+    - `JxxClassTemplateNE<This_,Parents_...>`  
+        c++ class tempalte without js-exports
+    - `JxxClassTemplate<<This_,Parents_...>`  
+        c++ class tempalte with js-exports
+    - `JxxOf<T>`                                  
+        generic wrapper for any c++ struct
+
+    ```C++
+    //
+    // JxxClassTemplate
+    //
+    class Console : public JxxClassTemplate<Console, IJxxObject> 
+    {
+    public:
+        DEFINE_CLASS_NAME("org.mode.buildin.console");
+    public:
+        value_ref_t log(call_info_t&, more_list__ args) { 
+            return JS_INVALID_REFERENCE;
+        }
+    public:
+        // export log function
+        JXX_EXPORT_METHOD(Console, log);            
+    };
+
+    //
+    // JxxOf
+    //
+
+    // directly wrap asio::ip::tcp::socket
+    using tcp_socket_t = JxxOf<tcp::socket>;        
+
+    _as_the<_NotCare> AsyncRead(_as_the<_Object> socket, _as_the<_BufferLike> buffer)
+    {
+        Durable<ExtObject> jsSocket(socket);
+        if (!jsSocket) return Undefined();
+
+        // TryGetAs will check c++ object type.
+        JxxObjectPtr<tcp_socket_t> cxxSocket = jsSocket->TryGetAs<tcp_socket_t>();
+        if (!cxxSocket) return Undefined();
+
+        Durable<value_ref_t> jsBuffer = buffer;
+        content_t cxxBuffer = GetContent(jsBuffer.get());
+        cxxSocket->async_read_some(asio::buffer(cxxBuffer.data, cxxBuffer.size),
+            [jsSocket, jsBuffer](std::error_code ec, size_t read)
+            {
+                Function callback = (value_ref_t)jsSocket->GetProperty("onData");
+                if (!callback) return;
+                callback.Call(
+                    jsSocket.get(),
+                    just_is_(ec.value()),
+                    just_is_(read),
+                    jsBuffer.get()
+                );
+            });
+        return Undefined();
+    };
+    ```
