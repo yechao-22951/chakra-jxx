@@ -1,35 +1,111 @@
 #pragma once
 #include <asio.hpp>
+#include <vector>
+#include <filesystem>
+#include <algorithm>
 #include <fstream>
 #include "js.context.h"
 #include "jxx.api.h"
 #include "jxx.cc.h"
 #include "jxx.class.h"
 
+namespace fs = std::filesystem;
 class JxxRuntime : public JxxClassTemplateNE<JxxRuntime, IJxxObject> {
+protected:
+    struct named_path_t {
+    };
+    using path_array_t = std::vector<fs::path>;
 protected:
     js::cache_t cache_;
     js::Runtime runtime_;
     asio::io_context loop_;
+    path_array_t search_path_;
+
+    // js utils
     js::Durable<js::Context> zone_0_;
     js::Durable<js::Function> json_parse_;
     js::Durable<js::Function> json_stringify;
+
 public:
     JxxRuntime(JsRuntimeAttributes attr, JsThreadServiceCallback jts)
         : runtime_(attr, jts), loop_(1) {
         JsSetPromiseContinuationCallback(JxxRuntime::__PromiseContinuation,
             this);
         zone_0_ = js::Context::Create(runtime_, nullptr);
+        AppendSearchPath(".");
+        AppendSearchPath("node_modules");
+        AppendSearchPath("mode_modules.jmp");
     }
     ~JxxRuntime() {
         cache_.clear();
     }
+protected:
+    bool _is_search_path_exists(const fs::path& path) {
+        auto it = std::find(std::begin(search_path_), std::end(search_path_), path);
+        return it != std::end(search_path_);
+    }
 public:
+
     js::cache_t& cache() { return cache_; };
     JsRuntimeHandle handle() { return runtime_; };
     void close() { JsDisposeRuntime(runtime_); }
     asio::io_context& io_context() { return loop_; };
 
+    /** Perform an edit on the document associated with this text editor.
+     *
+     * The given callback-function is invoked with an [edit-builder](#TextEditorEdit) which must
+     * be used to make edits. Note that the edit-builder is only valid while the
+     * callback executes.
+     *
+     * @param path A function which can create edits using an [edit-builder](#JxxRuntime.AppendSearchPath).
+     * @return If operation is successfully.
+     */
+    bool AppendSearchPath(fs::path path) {
+        if (path.is_relative())
+            path = fs::current_path() / path;
+        if (_is_search_path_exists(path))
+            return true;
+        search_path_.emplace_back(std::move(path));
+        return true;
+    }
+
+    /** Perform an edit on the document associated with this text editor.
+     *
+     * The given callback-function is invoked with an [edit-builder](#TextEditorEdit) which must
+     * be used to make edits. Note that the edit-builder is only valid while the
+     * callback executes.
+     *
+     * @param path A function which can create edits using an [edit-builder](#JxxRuntime.AppendSearchPath).
+     * @return If operation is successfully.
+     */
+    bool RemoveSearchPath(const fs::path& path) {
+        auto it = std::find(std::begin(search_path_), std::end(search_path_), path);
+        if (it == std::end(search_path_))
+            return false;
+        search_path_.erase(it);
+        return true;
+    }
+
+    /** Perform an edit on the document associated with this text editor.
+     *
+     * The given callback-function is invoked with an [edit-builder](#TextEditorEdit) which must
+     * be used to make edits. Note that the edit-builder is only valid while the
+     * callback executes.
+     *
+     * @param path A function which can create edits using an [edit-builder](#JxxRuntime.AppendSearchPath).
+     * @return If operation is successfully.
+     */
+    bool ResolvePath(const fs::path & path, fs::path & out) {
+
+    }
+
+    /**
+     * @brief Parse an string to JSON object.
+     *
+     * @param ptr A pointer to target string.
+     * @param len The length of the string.
+     * @return JsValueRef The parsed result.
+     */
     JsValueRef JsonParse(const char* ptr, size_t len) {
         if (!json_parse_) return JS_INVALID_REFERENCE;
         if (!len) len = strlen(ptr);
@@ -46,6 +122,11 @@ public:
         }
         return JS_INVALID_REFERENCE;
     }
+    /**
+     * @brief Initillize JSON parser and stringifer.
+     *
+     * @return JsErrorCode The error code.
+     */
     JsErrorCode InitJsonTool() {
         js::Context::Scope scope(zone_0_.get());
         js::Object global = js::Context::Global();
@@ -55,6 +136,14 @@ public:
         json_parse_ = js::Function(json.GetProperty("parse"));
         json_stringify = js::Function(json.GetProperty("stringify"));
         return JsNoError;
+    }
+
+    JsValueRef LoadModule(JsValueRef code) {
+        auto rt = JxxGetCurrentRuntime();
+        js::Context module_context = js::Context::Create(runtime_, nullptr);
+        if (!module_context) return JS_INVALID_REFERENCE;
+        js::Context::Scope module_scope(module_context);
+        if (!module_scope.HasEntered()) return JS_INVALID_REFERENCE;
     }
 public:
     static void CHAKRA_CALLBACK
@@ -128,16 +217,29 @@ JXXAPI JsPropertyIdRef JxxGetPropertyId(JxxCharPtr ptr, size_t len)
     return rt->cache().get_propid(std::move(std::string(ptr, len)));
 }
 
-JXXAPI JsValueRef JxxQueryProto(const char* ptr) {
+/**
+ * @brief Query prototype object from current runtime by special name.
+ *
+ * @param name
+ * @return JsValueRef
+ */
+JXXAPI JsValueRef JxxQueryProto(const char* name) {
     js::Context context = js::Context::Current();
     if (!context)
         return JS_INVALID_REFERENCE;
     JxxRuntime* rt = (JxxRuntime*)context.GetData();
     if (!rt)
         return JS_INVALID_REFERENCE;
-    return rt->cache().get_proto(std::move(std::string(ptr)));
+    return rt->cache().get_proto(std::move(std::string(name)));
 }
 
+/**
+ * @brief
+ *
+ * @param ptr
+ * @param proto
+ * @return JsValueRef
+ */
 JXXAPI JsValueRef JxxRegisterProto(const char* ptr, JsValueRef proto) {
     js::Object prototype(proto);
     if (!prototype)

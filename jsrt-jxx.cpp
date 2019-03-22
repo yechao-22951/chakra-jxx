@@ -59,7 +59,7 @@ bool resolve(const std::string& specialer, std::filesystem::path& out) {
     if (target.is_absolute()) return false;
     /*
     if (specialer in BuildinModuleMap ) {
-        
+
     }
     */
     out = (current / target).lexically_normal();
@@ -71,15 +71,64 @@ bool resolve(const std::string& specialer, std::filesystem::path& out) {
     return false;
 }
 
+//bool resolve_relative(
+//    const fs::path & root,
+//    const std::string & specialer,
+//    std::filesystem::path & out)
+//{
+//    out = (current / specialer).lexically_normal();
+//    return fs::exists(out);
+//}
+
+using pathes_t = std::vector<fs::path>;
+
+//bool resolve_specialer(
+//    const fs::path & current,
+//    const pathes_t & search,
+//    const std::string & specialer,
+//    std::filesystem::path & out)
+//{
+//    for (fs::path root : search) {
+//        if (root.is_relative())
+//            root = (current / root).lexically_normal();
+//        resolve_relative(root,
+//    }
+//    out = (current / specialer).lexically_normal();
+//    return fs::exists(out);
+//}
+
+// return exports
+JsValueRef JxxLoadModule(JxxCharPtr specialer) {
+    auto rt = JxxGetCurrentRuntime();
+    js::Context module_context = js::Context::Create(rt->handle(), nullptr);
+    if (!module_context) return JS_INVALID_REFERENCE;
+    js::Context::Scope module_scope(module_context);
+    if (!module_scope.HasEntered()) return JS_INVALID_REFERENCE;
+}
+
+JsValueRef JxxResolvePath(JxxCharPtr specialer) {
+    return JS_INVALID_REFERENCE;
+}
+
+JsValueRef JxxSearchPathAppend() {
+    return JS_INVALID_REFERENCE;
+}
+JsValueRef JxxSearchPathRemove() {
+    return JS_INVALID_REFERENCE;
+
+}
+
+
 int main() {
     fs::path yes;
     resolve("x64", yes);
-    if( fs::is_directory(yes) ) {
+    if (fs::is_directory(yes)) {
         fs::path indexjs = yes / "index.js";
-        if( fs::exists(indexjs) ) {
-            
+        if (fs::exists(indexjs)) {
+
         }
     }
+
     JxxRuntime runtime(JsRuntimeAttributeNone, nullptr);
     runtime.InitJsonTool();
     auto vv = runtime.JsonParse("{9}", 2);

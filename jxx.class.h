@@ -12,6 +12,12 @@ using jxx_counter_t = std::atomic<uint32_t>;
 
 struct JXX_VIRTUAL_POINT {};
 
+/**
+ * @brief JxxClass template without JS exports.
+ * 
+ * @tparam This_ The target class.
+ * @tparam Implements_ The parent classes.
+ */
 template <typename This_, typename... Implements_>
 class JxxClassTemplateNE : public Implements_... {
 public:
@@ -50,6 +56,12 @@ public:
     }
 };
 
+/**
+ * @brief 
+ * 
+ * @tparam This_ 
+ * @tparam Implements_ 
+ */
 template <typename This_, typename... Implements_>
 class JxxClassTemplate : public JxxClassTemplateNE<This_, Implements_...> {
 public:
@@ -119,6 +131,11 @@ public:
     };
 };
 
+/**
+ * @brief The wrapper for any c++ class/struct.
+ * 
+ * @tparam T Any c++ class/struct.
+ */
 template <typename T>
 class JxxOf : public JxxClassTemplate<JxxOf<T>, IJxxObject>, public T {
 public:
@@ -131,26 +148,50 @@ template <typename T> void CHAKRA_CALLBACK CppDelete(void* ptr) {
     delete (T*)ptr;
 }
 
+/**
+ * @brief Exports the c++ class method. 
+ * 
+ */
 #define JXX_EXPORT_METHOD(K, CXX_NAME)                                         \
     static inline const JXX_VIRTUAL_POINT __jxx__##CXX_NAME =                  \
         K::ADD_EXPORT_METHOD(                                                  \
             #CXX_NAME, &_STUB_OF_MAGIC_METHOD_OF_<&K::CXX_NAME, js::DenyNew>);
 
+/**
+ * @brief Exports the c++ class method by new name.
+ * 
+ */
 #define JXX_EXPORT_METHOD_RENAME(K, CXX_NAME, JS_NAME)                         \
     static inline const JXX_VIRTUAL_POINT __jxx__##JS_NAME =                   \
         K::ADD_EXPORT_METHOD(                                                  \
             #JS_NAME, &_STUB_OF_MAGIC_METHOD_OF_<&K::CXX_NAME, js::DenyNew>);
 
+/**
+ * @brief Exports the c/c++ function(static).
+ * 
+ */
 #define JXX_EXPORT_FUNCTION(K, CXX_NAME)                                       \
     static inline const JXX_VIRTUAL_POINT __jxx__##CXX_NAME =                  \
         K::ADD_EXPORT_FUNCTION(                                                \
             #CXX_NAME, &_STUB_OF_MAGIC_FUNC_OF_<&K::CXX_NAME, js::DenyNew>);
 
+/**
+ * @brief Exports the c/c++ function by new name.
+ * 
+ */
 #define JXX_EXPORT_FUNCTION_RENAME(K, CXX_NAME, JS_NAME)                       \
     static inline const JXX_VIRTUAL_POINT __jxx__##CXX_NAME =                  \
         K::ADD_EXPORT_FUNCTION(                                                \
             #JS_NAME, &_STUB_OF_MAGIC_FUNC_OF_<&K::CXX_NAME, js::DenyNew>);
 
+/**
+ * @brief Mixin methods or static functions to target object.
+ * 
+ * @param object The object to be mixin.
+ * @param clsid The class to mixin.
+ * @param MixinOptions The mixin options. @see MixinOptions
+ * @return int The error code.
+ */
 JXXAPI int JxxMixinObject(JsValueRef object, JxxClassId clsid,
     int MixinOptions) {
     js::Object target(object);
