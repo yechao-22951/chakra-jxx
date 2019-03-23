@@ -62,6 +62,10 @@ namespace js {
         JsValueRef returnValue;
     };
 
+    /**
+     * @brief 
+     * 
+     */
     class param_t {
     protected:
         JsValueRef* args = nullptr;
@@ -87,6 +91,10 @@ namespace js {
         ChakraBytePtr data = nullptr;
         length_t size = 0;
         uint8_t& operator[](size_t i) { return data[i]; }
+        template <typename T>
+        T * get_ptr() {
+            return (T*)data;
+        }
     };
 
     template <typename Return_> struct IF_EXCEPTION_RETURN {
@@ -112,6 +120,11 @@ namespace js {
         }
     };
 
+    /**
+     * @brief Durable<T> is as same as v8::Perisistent<T>. 
+     * 
+     * @tparam T Any class(struct) with AddRef/Release methods.
+     */
     template <typename T> class Durable {
     protected:
         T ref_ = T();

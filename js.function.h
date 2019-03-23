@@ -23,25 +23,25 @@ namespace js {
             return JS_INVALID_REFERENCE;
         }
 
-        template <normal_func_t Funtion_, int Deny_ = DenyNew>
-        static JsValueRef
-            _STUB_OF_NORMAL_FUNC_OF_(JsValueRef callee, bool isNew, JsValueRef * arguments,
-                unsigned short argumentsCount, void* externalData) {
+        // template <normal_func_t Funtion_, int Deny_ = DenyNew>
+        // static JsValueRef
+        //     _STUB_OF_NORMAL_FUNC_OF_(JsValueRef callee, bool isNew, JsValueRef * arguments,
+        //         unsigned short argumentsCount, void* externalData) {
 
-            return THROW_JS_EXCEPTION_([&]() {
-                CXX_EXCEPTION_IF(JsErrorInvalidArgument, argumentsCount == 0);
-                int mode = isNew ? DenyNew : DenyNormal;
-                CXX_EXCEPTION_IF(ErrorCallModeIsDenied, mode & Deny_);
-                call_info_t info = { callee,
-                                    isNew,
-                                    arguments[0],
-                                    arguments + 1,
-                                    (size_t)(argumentsCount - 1),
-                                    externalData };
-                Funtion_(info);
-                return info.returnValue;
-                });
-        };
+        //     return THROW_JS_EXCEPTION_([&]() {
+        //         CXX_EXCEPTION_IF(JsErrorInvalidArgument, argumentsCount == 0);
+        //         int mode = isNew ? DenyNew : DenyNormal;
+        //         CXX_EXCEPTION_IF(ErrorCallModeIsDenied, mode & Deny_);
+        //         call_info_t info = { callee,
+        //                             isNew,
+        //                             arguments[0],
+        //                             arguments + 1,
+        //                             (size_t)(argumentsCount - 1),
+        //                             externalData };
+        //         Funtion_(info);
+        //         return info.returnValue;
+        //         });
+        // };
 
         template <typename Function_, std::size_t... I>
         void ____call_magic_function(Function_ callee, call_info_t & info,
@@ -99,14 +99,6 @@ namespace js {
             return out;
         }
 
-        //template <normal_func_t Function_>
-        //static value_ref_t FromNormal(JsValueRef name, void* data) {
-        //    value_ref_t out;
-        //    JsCreateNamedFunction(name, xx::_STUB_OF_NORMAL_FUNC_OF_<Function_>,
-        //        data, out.addr());
-        //    return out;
-        //}
-
         template <auto Function_>
         static value_ref_t Magic(JsValueRef name = nullptr, void* data = nullptr) {
             value_ref_t out;
@@ -117,24 +109,5 @@ namespace js {
     };
 
     using Function = base_value_<function_accessor_>;
-
-    // class Promise {
-    //    Object        promise_;
-    //    Function    resolve_;
-    //    Function    reject_;
-    // public:
-    //    Promise() {
-    //        JsCreatePromise(promise_.addr(), resolve_.addr(), reject_.addr());
-    //    }
-    //    bool Resolve(Value value) {
-    //        value_ref_t global = Context::CurrentGlobal();
-    //        if( !global ) return false;
-    //        resolve_.Call(global, value);
-    //        return true;
-    //    }
-    //    Reject() {
-
-    //    }
-    //};
 
 }; // namespace js

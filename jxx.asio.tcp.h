@@ -224,7 +224,7 @@ namespace js {
                 if (!cxxAcceptor->is_open())
                     return;
                 if (ec) return;
-                Function onConnection = jsAcceptor->GetProperty(JxxGetPropertyId("onConnection"));
+                Function onConnection = jsAcceptor->GetProperty(JxxAllocPropertyId("onConnection"));
                 if (!onConnection)
                     return;
                 auto client = ExtObject::As<tcp_socket_t>::New(nullptr, std::move(socket));

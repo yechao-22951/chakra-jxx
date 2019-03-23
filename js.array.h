@@ -10,6 +10,8 @@ namespace js {
 /**
  * @brief IndexedProperty
  * 
+ * This is a proxy object of indexed property getter and setter
+ * 
  */
 class IndexedProperty {
   protected:
@@ -20,8 +22,9 @@ class IndexedProperty {
     IndexedProperty() {}
     IndexedProperty(value_ref_t target, value_ref_t index)
         : this_(target), index_(index) {}
-    void operator=(const value_ref_t &val) {
+    IndexedProperty& operator=(const value_ref_t &val) {
 		JSERR_TO_EXCEPTION(JsSetIndexedProperty(this_, index_, val));
+        return *this;
     }
     operator value_ref_t() const {
         value_ref_t out;
@@ -51,7 +54,9 @@ class array_accessor_ : public object_accessor_<_Array> {
         return GetAs<Int>(length);
     }
     /**
-     * @brief Get the Item array
+     * @brief Get the indexed property.
+     * 
+     * Just call JsSetIndexedProperty.
      * 
      * @param index The index of the array to get.
      * @return value_ref_t The js value.
@@ -63,7 +68,9 @@ class array_accessor_ : public object_accessor_<_Array> {
         return out;
     }
     /**
-     * @brief Set the Item object
+     * @brief Set the indexed property
+     * 
+     * Just call JsSetIndexedProperty.
      * 
      * @param index 
      * @param value 
@@ -76,10 +83,10 @@ class array_accessor_ : public object_accessor_<_Array> {
         return err == JsNoError;
     }
     /**
-     * @brief 
+     * @brief Set or Get indexed property
      * 
-     * @param index 
-     * @return IndexedProperty 
+     * @param index The index of the property.
+     * @return IndexedProperty The getter and setter proxy object.
      */
     IndexedProperty operator[](Int index) {
         return IndexedProperty(*this, Just<Int>(index));

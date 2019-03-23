@@ -8,24 +8,25 @@
 #include "jxx.api.h"
 #include "jxx.cc.h"
 #include "jxx.class.h"
+#include "jxx.module.h"
 
-namespace fs = std::filesystem;
 class JxxRuntime : public JxxClassTemplateNE<JxxRuntime, IJxxObject> {
 protected:
-    struct named_path_t {
-    };
-    using path_array_t = std::vector<fs::path>;
+    using running_modules_t = std::unordered_map<fs::path, js::Durable<js::Value>>;
 protected:
-    js::cache_t cache_;
+    // shared
+    JxxObjectPtr<ModuleRegistry> registry_;
+protected:
+    // this runtime
+    js::ValueCache cache_;
     js::Runtime runtime_;
     asio::io_context loop_;
-    path_array_t search_path_;
-
+    jxx::PathResolver search_path_;
     // js utils
     js::Durable<js::Context> zone_0_;
     js::Durable<js::Function> json_parse_;
     js::Durable<js::Function> json_stringify;
-
+    running_modules_t running_modules_;
 public:
     JxxRuntime(JsRuntimeAttributes attr, JsThreadServiceCallback jts)
         : runtime_(attr, jts), loop_(1) {
@@ -46,10 +47,55 @@ protected:
     }
 public:
 
-    js::cache_t& cache() { return cache_; };
+    js::ValueCache& cache() { return cache_; };
     JsRuntimeHandle handle() { return runtime_; };
     void close() { JsDisposeRuntime(runtime_); }
     asio::io_context& io_context() { return loop_; };
+
+    JxxErrorCode nodejs_like_require_(const std::string_view& specialer) {
+        const std::vector<std::string> specialers = {
+            /*0*/specialer,
+            /*1*/specialer + ".js",
+            /*2*/specialer + "/index.js",
+            /*3*/specialer + "/package.json",
+            /*4*/specialer + ".jsxm"
+        };
+        fs::path resolved;
+        int index = search_path_.ResolveEx(specialers, resolved, false);
+        if (index < 0) return eoPath | ecNoExists;
+        if (fs::is_directory(resolved)) return eoFile | ecUnmatch;
+        if (index == 3) {
+            // package.json
+            value_ref_t json = JxxReadFileContent(resolved.c_str(), 0);
+            if (!json) return eoFile | ecIoRead;
+            js::Object package = JxxJsonParse(json);
+            if (!package) return eoFile | ecBadFormat;
+            js::Value main = package["main"];
+            if (!main) return eoPivotalData | ecNotExists;
+            if (!main.is(JsString)) return eoPivotalData | ecUnmatch;
+            fs::path path_of_main = resolved.parent_path() / GetAs<js::String>(main);
+            if (!fs::exists(path_of_main)) return eoFile | ecNotExists;
+            if (fs::is_directory(path_of_main)) return eoFile | ecUnmatch;
+            resolved = path_of_main;
+        }
+        auto ext = resolved.extension();
+        value_ref_t exports;
+        if (ext == "js" || ext == "cjs") {
+            auto data = JxxReadFileContent(resolved.c_str(), 0);
+            auto content = js::GetContent(data);
+            return _LoadSourceModule(content.get_ptr<char>(), content.size, exports.addr());
+        }
+        else if (ext == "json") {
+            auto data = JxxReadFileContent(resolved.c_str(), 0);
+            auto content = js::GetContent(data);
+            exports = JxxJsonParse(content.get_ptr<char>(), content.size);
+            if (!content) return JxxErrorJsrtError;
+            running_modules_[resolved] = exports;
+        }
+        else if (ext == "jsxm") {
+            return _LoadNativeModule(resolved.c_str(), exports.addr());
+        }
+    }
 
     /** Perform an edit on the document associated with this text editor.
      *
@@ -61,12 +107,7 @@ public:
      * @return If operation is successfully.
      */
     bool AppendSearchPath(fs::path path) {
-        if (path.is_relative())
-            path = fs::current_path() / path;
-        if (_is_search_path_exists(path))
-            return true;
-        search_path_.emplace_back(std::move(path));
-        return true;
+        return search_path_.AddPath(path);
     }
 
     /** Perform an edit on the document associated with this text editor.
@@ -79,11 +120,7 @@ public:
      * @return If operation is successfully.
      */
     bool RemoveSearchPath(const fs::path& path) {
-        auto it = std::find(std::begin(search_path_), std::end(search_path_), path);
-        if (it == std::end(search_path_))
-            return false;
-        search_path_.erase(it);
-        return true;
+        return search_path_.RemovePath(path);
     }
 
     /** Perform an edit on the document associated with this text editor.
@@ -95,7 +132,7 @@ public:
      * @param path A function which can create edits using an [edit-builder](#JxxRuntime.AppendSearchPath).
      * @return If operation is successfully.
      */
-    bool ResolvePath(const fs::path & path, fs::path & out) {
+    bool ResolvePath(const fs::path& path, fs::path& out) {
 
     }
 
@@ -167,19 +204,26 @@ public:
     }
 };
 
+using JxxRuntimeInitializeCallback = JxxErrorCode(*) (JxxRuntime*);
+
 JXXAPI JxxRuntime* JxxCreateRuntime(JsRuntimeAttributes attr,
-    JsThreadServiceCallback jts) {
-    JxxRuntime* out = new JxxRuntime(attr, jts);
+    JsThreadServiceCallback jts, JxxRuntimeInitializeCallback init = nullptr) {
+    JxxObjectPtr<JxxRuntime> out = new JxxRuntime(attr, jts);
     if (!out)
         return nullptr;
+
     auto err = JsSetRuntimeBeforeCollectCallback(
         out->handle(), out, &JxxRuntime::BeforeCollectCallback);
-    if (err) {
-        delete out;
+
+    if (err)
         return nullptr;
-    };
-    out->AddRef();
-    return out;
+
+    if (init) {
+        auto e = init(out);
+        if (e) return nullptr;
+    }
+
+    return out.detach();
 }
 
 JXXAPI JxxRuntime* JxxGetCurrentRuntime() {
@@ -191,28 +235,22 @@ JXXAPI JxxRuntime* JxxGetCurrentRuntime() {
 }
 
 JXXAPI JsContextRef JxxCreateContext(JxxRuntime* runtime) {
-    return js::Context::Create(runtime->handle(), runtime);
+    if (!runtime) return JS_INVALID_REFERENCE;
+    auto handle = runtime->handle();
+    if (!handle) return JS_INVALID_REFERENCE;
+    return js::Context::Create(handle, runtime);
 }
 
-JXXAPI JsValueRef JxxGetString(const char* ptr, size_t len) {
-    js::Context context = js::Context::Current();
-    if (!context)
-        return JS_INVALID_REFERENCE;
-    JxxRuntime* rt = (JxxRuntime*)context.GetData();
-    if (!rt)
-        return JS_INVALID_REFERENCE;
-    len = len ? len : strlen(ptr);
-    return rt->cache().get_string(std::move(std::string(ptr, len)));
+JXXAPI JsValueRef JxxAllocString(const char* str, size_t len) {
+    JxxRuntime* rt = JxxGetCurrentRuntime();
+    if (!rt) return JS_INVALID_REFERENCE;
+    return rt->cache().get_string(str, len);
 }
 
-JXXAPI JsPropertyIdRef JxxGetPropertyId(JxxCharPtr ptr, size_t len)
+JXXAPI JsPropertyIdRef JxxAllocPropertyId(JxxCharPtr ptr, size_t len)
 {
-    js::Context context = js::Context::Current();
-    if (!context)
-        return JS_INVALID_REFERENCE;
-    JxxRuntime* rt = (JxxRuntime*)context.GetData();
-    if (!rt)
-        return JS_INVALID_REFERENCE;
+    JxxRuntime* rt = JxxGetCurrentRuntime();
+    if (!rt) return JS_INVALID_REFERENCE;
     len = len ? len : strlen(ptr);
     return rt->cache().get_propid(std::move(std::string(ptr, len)));
 }
@@ -224,12 +262,8 @@ JXXAPI JsPropertyIdRef JxxGetPropertyId(JxxCharPtr ptr, size_t len)
  * @return JsValueRef
  */
 JXXAPI JsValueRef JxxQueryProto(const char* name) {
-    js::Context context = js::Context::Current();
-    if (!context)
-        return JS_INVALID_REFERENCE;
-    JxxRuntime* rt = (JxxRuntime*)context.GetData();
-    if (!rt)
-        return JS_INVALID_REFERENCE;
+    JxxRuntime* rt = JxxGetCurrentRuntime();
+    if (!rt) return JS_INVALID_REFERENCE;
     return rt->cache().get_proto(std::move(std::string(name)));
 }
 
@@ -241,27 +275,18 @@ JXXAPI JsValueRef JxxQueryProto(const char* name) {
  * @return JsValueRef
  */
 JXXAPI JsValueRef JxxRegisterProto(const char* ptr, JsValueRef proto) {
+    JxxRuntime* rt = JxxGetCurrentRuntime();
+    if (!rt) return JS_INVALID_REFERENCE;
     js::Object prototype(proto);
-    if (!prototype)
-        return JS_INVALID_REFERENCE;
-    js::Context context = js::Context::Current();
-    if (!context)
-        return JS_INVALID_REFERENCE;
-    JxxRuntime* rt = (JxxRuntime*)context.GetData();
-    if (!rt)
-        return JS_INVALID_REFERENCE;
+    if (!prototype) return JS_INVALID_REFERENCE;
     rt->cache().put_proto(std::string(ptr), prototype);
     return proto;
 }
 
-JXXAPI JsValueRef JxxGetSymbol(const char* ptr) {
-    js::Context context = js::Context::Current();
-    if (!context)
-        return JS_INVALID_REFERENCE;
-    JxxRuntime* rt = (JxxRuntime*)context.GetData();
-    if (!rt)
-        return JS_INVALID_REFERENCE;
-    return rt->cache().get_symbol(std::move(std::string(ptr)));
+JXXAPI JsValueRef JxxAllocSymbol(const char* ptr) {
+    JxxRuntime* rt = JxxGetCurrentRuntime();
+    if (!rt) return JS_INVALID_REFERENCE;
+    return rt->cache().get_symbol(std::string(ptr));
 }
 
 JXXAPI JsValueRef JxxRunScript(JxxCharPtr code, size_t len, JsValueRef url)
@@ -296,7 +321,7 @@ JXXAPI JsValueRef JxxReadFileContent(JxxCharPtr path, size_t len)
         std::stringstream data;
         data << in.rdbuf();
         std::string code(data.str());
-        return js::Just<js::String>(std::move(code));
+        return ArrayBuffer::CreateFrom(code);
     }
     catch (...) {
         return JS_INVALID_REFERENCE;

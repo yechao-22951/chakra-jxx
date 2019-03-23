@@ -149,10 +149,10 @@ int main() {
     Listen(server);
     runtime.io_context().run();
     int a = 1;
-    //value_ref_t str1 = JxxGetString("hello");
-    //value_ref_t str2 = JxxGetString("hello");
+    //value_ref_t str1 = JxxAllocString("hello");
+    //value_ref_t str2 = JxxAllocString("hello");
     //value_ref_t str3 = Just("hello");
-    //value_ref_t sym1 = JxxGetSymbol("hello");
+    //value_ref_t sym1 = JxxAllocSymbol("hello");
 
     //JxxMixinObject(js_jello, jxx_clsid_of_(Console), MIXIN_METHOD);
     //js_jello.Call(Undefined());

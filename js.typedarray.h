@@ -76,15 +76,6 @@ class MemoryView {
     template <typename T> bool IsFit() {
         return (array_type_of_native_<T>::mask & (1 << el_type_)) != 0;
     }
-    // template <typename T>
-    // bool GetElement( size_t index, T & out ) {
-    //    if( !IsFit<T>() ) return false;
-
-    //}
-    // template <typename T>
-    // bool SetElement(size_t index, T& out) {
-
-    //}
     template <typename T> T &operator[](size_t index) {
         size_t offset = index * el_size_;
         CXX_EXCEPTION_IF(ErrorInvalidArrayIndex,

@@ -20,22 +20,71 @@ using JxxClassId = void*;
 
 class JxxRuntime;
 
+enum _JxxConpect {
+    eoJsrt,
+    eoFile = 0x00010000,
+    eoPath = 0x00020000,
+    eoMemory = 0x00030000,
+    eoPivotalData = 0x00040000,
+};
+
+enum _JxxErrorCode {
+    ecNone = 0,
+    ecNotExists = 1,
+    ecHasExisted = 2,
+    ecUnmatch = 3,
+    ecMissPivotalData = 4,
+    ecBadFormat = 5,
+    ecIoRead = 6,
+    ecIoWrite = 7,
+    JxxNoError = 0,
+    JxxErrorHasExisted = 1,
+    JxxErrorNotExists = 2,
+    JxxErrorNotUnmatch = 3,
+    JxxErrorMissPivotalData = 4,
+
+    JxxErrorJsrtError = 0x10000000,
+};
+
+enum JxxRuntimeStage {
+    INIT_STAGE = 0,
+    RUNNING_STAGE = 1,
+};
+
+/**
+ * @brief 
+ * 
+ * @param attr 
+ * @param jts 
+ * @return JxxRuntime*  
+ */
 JXXAPI JxxRuntime* JxxCreateRuntime(JsRuntimeAttributes attr,
     JsThreadServiceCallback jts);
 
+/**
+ * @brief 
+ * 
+ * @return JxxRuntime*  
+ */
 JXXAPI JxxRuntime* JxxGetCurrentRuntime();
 
+/**
+ * @brief 
+ * 
+ * @param runtime 
+ * @return JsContextRef
+ */
 JXXAPI JsContextRef JxxCreateContext(JxxRuntime* runtime);
 
-JXXAPI JsValueRef JxxGetString(JxxCharPtr ptr, size_t len = 0);
+JXXAPI JsValueRef JxxAllocString(JxxCharPtr ptr, size_t len = 0);
 
-JXXAPI JsPropertyIdRef JxxGetPropertyId(JxxCharPtr ptr, size_t len = 0);
+JXXAPI JsPropertyIdRef JxxAllocPropertyId(JxxCharPtr ptr, size_t len = 0);
 
 JXXAPI JsValueRef JxxQueryProto(JxxCharPtr ptr);
 
 JXXAPI JsValueRef JxxRegisterProto(JxxCharPtr ptr, JsValueRef proto);
 
-JXXAPI JsValueRef JxxGetSymbol(JxxCharPtr ptr);
+JXXAPI JsValueRef JxxAllocSymbol(JxxCharPtr ptr);
 
 JXXAPI JsValueRef JxxRunScript(JxxCharPtr code, size_t len);
 
@@ -86,6 +135,12 @@ enum JxxMixinOptions {
 #define DEFINE_CLASS_NAME(name) static inline JxxNamePtr __JS_UNCNAME__ = #name;
 #define NO_CLASS_NAME() static inline JxxNamePtr __JS_UNCNAME__ = nullptr;
 
+/**
+ * @brief IJxxObject interface. All native object assigned to JS object must be inherit from this.
+ * At the same time, the dynamic type convertion(like RTTI) depends on it. 
+ * @see IJxxObject::QueryClass
+ * 
+ */
 class IJxxObject {
 public:
     NO_CLASS_NAME();
@@ -104,13 +159,30 @@ public:
     }
 };
 
+/**
+ * @brief 
+ * 
+ * @param clsid 
+ * @return JxxClassDefinition
+ */
 JXXAPI JxxClassDefinition JxxQueryClass(JxxClassId clsid);
+
+/**
+ * @brief 
+ * 
+ * @param object 
+ * @param clsid 
+ * @param MixinOptions 
+ * @return JXXAPI JxxMixinObject 
+ */
 JXXAPI int JxxMixinObject(JsValueRef object, JxxClassId clsid,
     int MixinOptions);
 
-
-
-
+/**
+ * @brief The shared pointer of IJxxObject
+ * 
+ * @tparam JxxObject_ Any class inherit from IJxxObject
+ */
 template <typename JxxObject_> class JxxObjectPtr {
 protected:
     JxxObject_* nake_ = nullptr;
