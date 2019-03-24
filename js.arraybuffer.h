@@ -4,18 +4,18 @@
 #include "js.typedarray.h"
 
 namespace js {
-    class arraybuffer_accessor_ ;
+    class arraybuffer_accessor_;
     using ArrayBuffer = base_value_<arraybuffer_accessor_>;
 
     /**
      * @brief Acceseor of JS ArrayBuffer.
-     * 
+     *
      */
     class arraybuffer_accessor_ : public object_accessor_<_Buffer> {
     public:
         /**
          * @brief Get the content(buffer) of the ArrayBuffer
-         * 
+         *
          * @return content_t The view of the ArrayBuffer's data.
          */
         content_t GetContent() {
@@ -27,7 +27,7 @@ namespace js {
     public:
         /**
          * @brief Alloc a ArrayBuffer with special size in bytes.
-         * 
+         *
          * @param size The ArrayBuffer size in bytes.
          * @return ArrayBuffer The ArrayBuffer object, it is JS_INVALID_REFERENCE if failed.
          */
@@ -38,7 +38,7 @@ namespace js {
         }
         /**
          * @brief Create an external ArrayBuffer.
-         * 
+         *
          * @param data The poniter of the data.
          * @param size The size of the data.
          * @param do_free The destory function for data.
@@ -53,31 +53,55 @@ namespace js {
         }
         /**
          * @brief Create ArrayBuffer from multi-byte string.
-         * 
+         *
          * @param str The string object.
          * @return ArrayBuffer The ArrayBuffer object, it is JS_INVALID_REFERENCE if failed.
          */
-        static ArrayBuffer CreateFrom(String str) {
+        static ArrayBuffer CreateFrom(StringView str) {
             uint32_t len = (uint32_t)str.size();
             char* ptr = new char[len + 1];
             if (!ptr) return value_ref_t();
             memcpy(ptr, str.c_str(), len + 1);
             value_ref_t out;
             JsCreateExternalArrayBuffer(ptr, len, free, ptr, out.addr());
+            if (!out) free(ptr);
+            return out;
+        }
+        static ArrayBuffer CreateFrom(String str) {
+            String pstr = new String(std::move(str));
+            if (!pstr) return JS_INVALID_REFERENCE;
+            value_ref_t out;
+            JsCreateExternalArrayBuffer(
+                pstr->data(),
+                pstr->size(),
+                [](void* p) {delete (String*)p; },
+                pstr,
+                out.addr()
+            );
+            if (!out) delete pstr;
+            return out;
+        }
+        static ArrayBuffer CreateFrom(const StringView & str) {
+            uint32_t len = (uint32_t)str.size();
+            char* ptr = new char[len + 1];
+            if (!ptr) return value_ref_t();
+            memcpy(ptr, str.data(), len + 1);
+            value_ref_t out;
+            JsCreateExternalArrayBuffer(ptr, len, free, ptr, out.addr());
             return out;
         }
     };
 
-    
+
     /**
      * @brief Acceseor of JS DataView.
-     * 
+     *
      */
     class dataview_accessor_ : public object_accessor_<_DataView> {
     public:
         /**
          * @brief Get the content(buffer) of the DataView
-         * 
+         *
          * @return content_t The view of the DataView's data.
          */
         content_t GetContent() {
@@ -89,10 +113,10 @@ namespace js {
     public:
         /**
          * @brief Create a JS DataView of the ArrayBuffer.
-         * 
-         * @param buffer 
-         * @param offset 
-         * @param size 
+         *
+         * @param buffer
+         * @param offset
+         * @param size
          * @return value_ref_t The DataView object.
          */
         static value_ref_t Create(ArrayBuffer buffer, length_t offset,
@@ -107,7 +131,7 @@ namespace js {
 
     /**
      * @brief Get the content of the ArrayBuffer-like object, include: JsArrayBuffer, JsDataView and JsTypedArray
-     * 
+     *
      * @param ref The target JS buffer-like object.
      * @return content_t The view of the ArrayBuffer's data.
      */

@@ -169,7 +169,6 @@
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.primitive.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\js.value.h" />
     <ClInclude Include="..\..\..\Users\joy-c\source\repos\jsrt-jxx\mode.0.win32.h" />
-    <ClInclude Include="jam.winreg.h" />
     <ClInclude Include="js.array.h" />
     <ClInclude Include="js.arraybuffer.h" />
     <ClInclude Include="js.context.h" />

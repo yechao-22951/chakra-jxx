@@ -8,6 +8,11 @@
 #define JXXAPI __declspec(dllexport)
 #endif
 
+#ifdef GENERATING_DOCUMENTATION
+#undef JXXAPI
+#define JXXAPI
+#endif
+
 using JxxCharPtr = const char*;
 using JxxNamePtr = JxxCharPtr;
 using JxxCount = size_t;
@@ -22,10 +27,11 @@ class JxxRuntime;
 
 enum _JxxConpect {
     eoJsrt,
-    eoFile = 0x00010000,
-    eoPath = 0x00020000,
-    eoMemory = 0x00030000,
-    eoPivotalData = 0x00040000,
+    eoFile = 0x01000000,
+    eoPath = 0x02000000,
+    eoMemory = 0x03000000,
+    eoPivotalData = 0x04000000,
+    eoModule = 0x050000000,
 };
 
 enum _JxxErrorCode {
@@ -37,6 +43,7 @@ enum _JxxErrorCode {
     ecBadFormat = 5,
     ecIoRead = 6,
     ecIoWrite = 7,
+    ecNotEnough = 8,
     JxxNoError = 0,
     JxxErrorHasExisted = 1,
     JxxErrorNotExists = 2,
@@ -52,29 +59,28 @@ enum JxxRuntimeStage {
 };
 
 /**
- * @brief 
- * 
- * @param attr 
- * @param jts 
- * @return JxxRuntime*  
+ * @brief
+ *
+ * @param attr
+ * @param jts
+ * @return JxxRuntime*
  */
-JXXAPI JxxRuntime* JxxCreateRuntime(JsRuntimeAttributes attr,
-    JsThreadServiceCallback jts);
+JXXAPI JxxRuntime* JxxCreateRuntime(JsRuntimeAttributes attr, JsThreadServiceCallback jts);
 
 /**
- * @brief 
- * 
- * @return JxxRuntime*  
+ * @brief
+ *
+ * @return JxxRuntime*
  */
 JXXAPI JxxRuntime* JxxGetCurrentRuntime();
 
 /**
- * @brief 
- * 
- * @param runtime 
+ * @brief
+ *
+ * @param runtime
  * @return JsContextRef
  */
-JXXAPI JsContextRef JxxCreateContext(JxxRuntime* runtime);
+JXXAPI JsContextRef JxxCreateContext(JxxRuntime* runtime = nullptr);
 
 JXXAPI JsValueRef JxxAllocString(JxxCharPtr ptr, size_t len = 0);
 
@@ -86,13 +92,13 @@ JXXAPI JsValueRef JxxRegisterProto(JxxCharPtr ptr, JsValueRef proto);
 
 JXXAPI JsValueRef JxxAllocSymbol(JxxCharPtr ptr);
 
-JXXAPI JsValueRef JxxRunScript(JxxCharPtr code, size_t len);
+JXXAPI JsValueRef JxxRunScript(JsValueRef code, JsValueRef uri);
 
-JXXAPI JsValueRef JxxRunScript(JsValueRef code);
+JXXAPI JsValueRef JxxJsonParse(JsValueRef code);
 
-JXXAPI JsValueRef JxxJsonParse(JxxCharPtr code, size_t len);
+JXXAPI JsValueRef JxxJsonStringify(JsValueRef target);
 
-JXXAPI JsValueRef JxxReadFileContent(JxxCharPtr path, size_t len);
+JXXAPI JsValueRef JxxReadFileContent(JxxCharPtr path, bool binary_mode = false);
 
 struct JxxParents {
     size_t Count;
@@ -137,9 +143,9 @@ enum JxxMixinOptions {
 
 /**
  * @brief IJxxObject interface. All native object assigned to JS object must be inherit from this.
- * At the same time, the dynamic type convertion(like RTTI) depends on it. 
+ * At the same time, the dynamic type convertion(like RTTI) depends on it.
  * @see IJxxObject::QueryClass
- * 
+ *
  */
 class IJxxObject {
 public:
@@ -160,27 +166,27 @@ public:
 };
 
 /**
- * @brief 
- * 
- * @param clsid 
+ * @brief
+ *
+ * @param clsid
  * @return JxxClassDefinition
  */
 JXXAPI JxxClassDefinition JxxQueryClass(JxxClassId clsid);
 
 /**
- * @brief 
- * 
- * @param object 
- * @param clsid 
- * @param MixinOptions 
- * @return JXXAPI JxxMixinObject 
+ * @brief
+ *
+ * @param object
+ * @param clsid
+ * @param MixinOptions
+ * @return JXXAPI JxxMixinObject
  */
 JXXAPI int JxxMixinObject(JsValueRef object, JxxClassId clsid,
     int MixinOptions);
 
 /**
  * @brief The shared pointer of IJxxObject
- * 
+ *
  * @tparam JxxObject_ Any class inherit from IJxxObject
  */
 template <typename JxxObject_> class JxxObjectPtr {

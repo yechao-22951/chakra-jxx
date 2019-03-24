@@ -116,6 +116,10 @@ namespace js {
             propid_t pid = PropertyId(name);
             return GetProperty(pid);
         }
+        value_ref_t GetProperty(StringView name)const {
+            propid_t pid = PropertyId(std::move(name));
+            return GetProperty(pid);
+        }
 
         value_ref_t GetPrototype() const {
             value_ref_t out;
@@ -125,6 +129,16 @@ namespace js {
 
         bool SetPrototype(value_ref_t proto) {
             return JsSetPrototype(*this, proto) == JsNoError;
+        }
+
+    public:
+        static value_ref_t Create(JsValueRef proto = JS_INVALID_REFERENCE) {
+            JsValueRef out = JS_INVALID_REFERENCE;
+            auto err = JsCreateObject(&out);
+            if (err) return JS_INVALID_REFERENCE;
+            if (proto) err = JsSetPrototype(out, proto);
+            if (err) return JS_INVALID_REFERENCE;
+            return value_ref_t(out);
         }
     };
 

@@ -22,11 +22,12 @@ protected:
     js::Runtime runtime_;
     asio::io_context loop_;
     jxx::PathResolver search_path_;
+    running_modules_t running_modules_;
     // js utils
     js::Durable<js::Context> zone_0_;
     js::Durable<js::Function> json_parse_;
-    js::Durable<js::Function> json_stringify;
-    running_modules_t running_modules_;
+    js::Durable<js::Function> json_stringify_;
+    js::Durable<js::ObjectOnly> module_global_;
 public:
     JxxRuntime(JsRuntimeAttributes attr, JsThreadServiceCallback jts)
         : runtime_(attr, jts), loop_(1) {
@@ -45,6 +46,21 @@ protected:
         auto it = std::find(std::begin(search_path_), std::end(search_path_), path);
         return it != std::end(search_path_);
     }
+
+    Value _EvalSourceModule(js::Value exports, js::Value uri, js::Value code) {
+        js::Context module_context = CreateContext(module_global_);
+        if (!module_context) return JS_INVALID_REFERENCE;
+        js::Context::Scope module_scope(module_context);
+        js::Object global = module_context.Global();
+        global.SetProperty(js::StringView("exports"), exports);
+        JxxRunScript(code, uri);
+        return global.GetProperty(js::StringView("exports"));
+    }
+
+    Value _EvalNativeModule(js::StringView path) {
+        return JS_INVALID_REFERENCE;
+    }
+
 public:
 
     js::ValueCache& cache() { return cache_; };
@@ -52,7 +68,67 @@ public:
     void close() { JsDisposeRuntime(runtime_); }
     asio::io_context& io_context() { return loop_; };
 
-    JxxErrorCode nodejs_like_require_(const std::string_view& specialer) {
+    js::Context CreateContext(js::Object global_proto) {
+        js::Context ctx = js::Context::Create(handle(), runtime);
+        if (!ctx) return ctx;
+        if (!global_proto) return ctx;
+        js::Object global = ctx.Global();
+        if (!global) return JS_INVALID_REFERENCE;
+        if (!global.SetPrototype(global_proto))
+            return JS_INVALID_REFERENCE;
+        return ctx;
+    }
+
+    JxxErrorCode LoadSourceModule(js::StringView resolved, JsValueRef code, js::Value& exports) {
+        auto it = running_modules_.find(resolved);
+        if (it != running_modules_.end()) {
+            exports = it->second;
+            return eoModule | ecHasExisted;
+        }
+        js::Value uri = js::Just<js::StringView>(js::StringView(resolved.c_str()));
+        if (!uri) return eoMemory | ecNotEnough;
+        exports = js::Object::Create();
+        running_modules_[resolved] = exports;
+        exports = _EvalSourceModule(exports, uri, code);
+        running_modules_[resolved] = exports;
+        return ecNone;
+    }
+
+    JxxErrorCode LoadJsonModule(js::StringView resolved, JsValueRef code, js::Value& exports) {
+        auto it = running_modules_.find(resolved);
+        if (it != running_modules_.end()) {
+            exports = it->second;
+            return eoModule | ecHasExisted;
+        }
+        exports = JsonParse(code);
+        running_modules_[resolved] = exports;
+        return ecNone;
+    }
+
+    JxxErrorCode LoadNativeModule(js::StringView resolved, js::Value& exports) {
+        auto it = running_modules_.find(resolved);
+        if (it != running_modules_.end()) {
+            exports = it->second;
+            return eoModule | ecHasExisted;
+        }
+        exports = js::Object::Create();
+        running_modules_[resolved] = exports;
+        return ecNone;
+    }
+
+    JxxErrorCode LoadFileAsModule(js::StringView resolved, js::Value& exports) {
+        auto it = running_modules_.find(resolved);
+        if (it != running_modules_.end()) {
+            exports = it->second;
+            return eoModule | ecHasExisted;
+        }
+        exports = JxxReadFileContent(resolved.c_str(), 0);
+        running_modules_[resolved] = exports;
+        return ecNone;
+    }
+
+    JxxErrorCode LoadModule(js::StringView specialer, js::Value& exports) {
+
         const std::vector<std::string> specialers = {
             /*0*/specialer,
             /*1*/specialer + ".js",
@@ -60,13 +136,14 @@ public:
             /*3*/specialer + "/package.json",
             /*4*/specialer + ".jsxm"
         };
+
         fs::path resolved;
         int index = search_path_.ResolveEx(specialers, resolved, false);
-        if (index < 0) return eoPath | ecNoExists;
+        if (index < 0) return eoPath | ecNotExists;
         if (fs::is_directory(resolved)) return eoFile | ecUnmatch;
-        if (index == 3) {
+        if (resolved.filename() == "package.json") {
             // package.json
-            value_ref_t json = JxxReadFileContent(resolved.c_str(), 0);
+            js::Value json = JxxReadFileContent(resolved.c_str(), 0);
             if (!json) return eoFile | ecIoRead;
             js::Object package = JxxJsonParse(json);
             if (!package) return eoFile | ecBadFormat;
@@ -78,23 +155,26 @@ public:
             if (fs::is_directory(path_of_main)) return eoFile | ecUnmatch;
             resolved = path_of_main;
         }
+
+        auto it = running_modules_.find(resolved);
+        if (it != running_modules_.end()) {
+            exports = it->second;
+            return eoModule | ecHasExisted;
+        }
+
         auto ext = resolved.extension();
-        value_ref_t exports;
         if (ext == "js" || ext == "cjs") {
+            auto code = JxxReadFileContent(resolved.c_str(), 0);
+            return LoadSourceModule(resolved, code, exports);
+        }
+        if (ext == "json") {
             auto data = JxxReadFileContent(resolved.c_str(), 0);
-            auto content = js::GetContent(data);
-            return _LoadSourceModule(content.get_ptr<char>(), content.size, exports.addr());
+            return LoadJsonModule(resolved, data, exports);
         }
-        else if (ext == "json") {
-            auto data = JxxReadFileContent(resolved.c_str(), 0);
-            auto content = js::GetContent(data);
-            exports = JxxJsonParse(content.get_ptr<char>(), content.size);
-            if (!content) return JxxErrorJsrtError;
-            running_modules_[resolved] = exports;
-        }
-        else if (ext == "jsxm") {
-            return _LoadNativeModule(resolved.c_str(), exports.addr());
-        }
+        if (ext == "jsxm")
+            return LoadNativeModule(resolved, exports);
+
+        return LoadFileAsModule(resolved, exports);
     }
 
     /** Perform an edit on the document associated with this text editor.
@@ -119,7 +199,7 @@ public:
      * @param path A function which can create edits using an [edit-builder](#JxxRuntime.AppendSearchPath).
      * @return If operation is successfully.
      */
-    bool RemoveSearchPath(const fs::path& path) {
+    bool RemoveSearchPath(const fs::path & path) {
         return search_path_.RemovePath(path);
     }
 
@@ -132,8 +212,8 @@ public:
      * @param path A function which can create edits using an [edit-builder](#JxxRuntime.AppendSearchPath).
      * @return If operation is successfully.
      */
-    bool ResolvePath(const fs::path& path, fs::path& out) {
-
+    bool ResolvePath(const fs::path & path, fs::path & out) {
+        search_path_.Resolve(path, out, false);
     }
 
     /**
@@ -147,14 +227,28 @@ public:
         if (!json_parse_) return JS_INVALID_REFERENCE;
         if (!len) len = strlen(ptr);
         js::Context::Scope scope(zone_0_.get());
-        js::value_ref_t text = js::Just<const js::StringView&>(js::StringView(ptr, len));
+        js::Value text = js::Just<const js::StringView&>(js::StringView(ptr, len));
         if (!text) return JS_INVALID_REFERENCE;
         JsValueRef args[] = { js::Context::Global(), text };
-        js::value_ref_t out;
+        js::Value out;
         auto err = JsCallFunction(json_parse_.get(), args, 2, out.addr());
         if (!err) return out;
         if (err == JsErrorScriptException) {
-            js::value_ref_t exception;
+            js::Value exception;
+            JsGetAndClearException(exception.addr());
+        }
+        return JS_INVALID_REFERENCE;
+    }
+    JsValueRef JsonParse(JsValueRef text) {
+        if (!json_parse_ || !json)
+            return JS_INVALID_REFERENCE;
+        if (!len) len = strlen(ptr);
+        JsValueRef args[] = { js::Context::Global(), text };
+        js::Value out;
+        auto err = JsCallFunction(json_parse_.get(), args, 2, out.addr());
+        if (!err) return out;
+        if (err == JsErrorScriptException) {
+            js::Value exception;
             JsGetAndClearException(exception.addr());
         }
         return JS_INVALID_REFERENCE;
@@ -171,17 +265,10 @@ public:
         js::Object json = global["JSON"];
         if (!json) return JsErrorInvalidArgument;
         json_parse_ = js::Function(json.GetProperty("parse"));
-        json_stringify = js::Function(json.GetProperty("stringify"));
+        json_stringify_ = js::Function(json.GetProperty("stringify"));
         return JsNoError;
     }
 
-    JsValueRef LoadModule(JsValueRef code) {
-        auto rt = JxxGetCurrentRuntime();
-        js::Context module_context = js::Context::Create(runtime_, nullptr);
-        if (!module_context) return JS_INVALID_REFERENCE;
-        js::Context::Scope module_scope(module_context);
-        if (!module_scope.HasEntered()) return JS_INVALID_REFERENCE;
-    }
 public:
     static void CHAKRA_CALLBACK
         BeforeCollectCallback(_In_opt_ void* callbackState) {
@@ -234,7 +321,8 @@ JXXAPI JxxRuntime* JxxGetCurrentRuntime() {
     return rt;
 }
 
-JXXAPI JsContextRef JxxCreateContext(JxxRuntime* runtime) {
+JXXAPI JsContextRef JxxCreateContext(JxxRuntime* runtime = nullptr) {
+    if (!runtime) runtime = JxxGetCurrentRuntime();
     if (!runtime) return JS_INVALID_REFERENCE;
     auto handle = runtime->handle();
     if (!handle) return JS_INVALID_REFERENCE;
@@ -293,35 +381,39 @@ JXXAPI JsValueRef JxxRunScript(JxxCharPtr code, size_t len, JsValueRef url)
 {
     if (!len) len = strlen(code);
     js::StringView view(code, len);
-    js::value_ref_t js_code;
+    js::Value js_code;
     auto err = (JsCreateString(view.data(), view.size(), js_code.addr()));
     if (err) return JS_INVALID_REFERENCE;
-    js::value_ref_t result;
+    js::Value result;
     err = JsRun(js_code, 0, url, JsParseScriptAttributeNone, result.addr());
     if (err) return JS_INVALID_REFERENCE;
     return result;
 }
-JXXAPI JsValueRef JxxRunScript(JsValueRef code, JsValueRef url)
+JXXAPI JsValueRef JxxRunScript(JsValueRef code, JsValueRef uri)
 {
-    js::value_ref_t result;
+    js::Value result;
     auto err = JsRun(code, 0, url, JsParseScriptAttributeNone, result.addr());
     if (err) return JS_INVALID_REFERENCE;
     return result;
 }
-JXXAPI JsValueRef JxxJsonParse(JxxCharPtr code, size_t len)
+JXXAPI JsValueRef JxxJsonParse(JsValueRef json)
 {
     JxxRuntime* rt = JxxGetCurrentRuntime();
     if (!rt) return JS_INVALID_REFERENCE;
+    return rt->JsonParse(json);
 }
 
-JXXAPI JsValueRef JxxReadFileContent(JxxCharPtr path, size_t len)
+JXXAPI JsValueRef JxxReadFileContent(JxxCharPtr path, bool binary_mode)
 {
     try {
         std::ifstream in(path);
         std::stringstream data;
         data << in.rdbuf();
         std::string code(data.str());
-        return ArrayBuffer::CreateFrom(code);
+        if (binary_mode)
+            return ArrayBuffer::CreateFrom(std::move(code));
+        else
+            return Just(js::StringView(code));
     }
     catch (...) {
         return JS_INVALID_REFERENCE;

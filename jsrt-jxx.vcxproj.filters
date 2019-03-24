@@ -68,9 +68,6 @@
     <ClInclude Include="jxx.module.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="jam.winreg.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="jxx.object.h">
       <Filter>头文件</Filter>
     </ClInclude>

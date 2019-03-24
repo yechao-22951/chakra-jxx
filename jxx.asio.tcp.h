@@ -26,7 +26,7 @@ namespace js {
         HKEY h = VoidPtr<HKEY>(hkey);
         std::string path = GetAs<String>(subkey);
         HKEY out = nullptr;
-        CXX_EXCEPTION_IF(ErrorSyscall, RegCreateKeyA(h, path.c_str(), &out));
+        CXX_EXCEPTION_IF(ErrorSyscall, ::RegCreateKeyA(h, path.c_str(), &out));
         return VoidPtr(out);
     }
 

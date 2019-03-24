@@ -10,10 +10,10 @@ namespace js {
     class ValueCache {
     public:
         enum {
-            String,
-            Prototype,
-            Symbol,
-            _Max_,
+            ccString,
+            ccPrototype,
+            ccSymbol,
+            _ccMax_,
         };
     public:
         using value_map_t = std::unordered_map<String, Durable<Value>>;
@@ -28,7 +28,7 @@ namespace js {
         propid_map_t propids_;
 
 
-        value_map_t value_maps_[_Max_];
+        value_map_t value_maps_[_ccMax_];
     public:
         Value get_string(const String& pstr) {
             auto it = strings_.find(pstr);
